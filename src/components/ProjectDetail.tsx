@@ -92,52 +92,52 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const [expensesLoading, setExpensesLoading] = useState(true);
 
   // Load real expenses from Supabase
-  useEffect(() => {
-    const loadExpenses = async () => {
-      if (!hasBudget) {
-        setExpensesLoading(false);
-        return;
-      }
+  const loadExpenses = async () => {
+    if (!hasBudget) {
+      setExpensesLoading(false);
+      return;
+    }
 
-      try {
-        const { data, error } = await supabase
-          .from('projet_depenses')
-          .select('*')
-          .eq('projet_id', project.id)
-          .order('date_depense', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('projet_depenses')
+        .select('*')
+        .eq('projet_id', project.id)
+        .order('date_depense', { ascending: false });
 
-        if (error) {
-          console.error('Erreur lors du chargement des dépenses:', error);
-          setProjectExpenses([]);
-        } else {
-          const expenses: ProjectExpense[] = data.map(expense => ({
-            id: expense.id,
-            projet_id: expense.projet_id,
-            date_depense: new Date(expense.date_depense),
-            intitule: expense.intitule,
-            montant: expense.montant,
-            devise: expense.devise,
-            taux_conversion: expense.taux_conversion,
-            montant_converti: expense.montant_converti,
-            rubrique: expense.rubrique,
-            piece_jointe_url: expense.piece_jointe_url,
-            piece_jointe_nom: expense.piece_jointe_nom,
-            piece_jointe_type: expense.piece_jointe_type,
-            piece_jointe_taille: expense.piece_jointe_taille,
-            created_by: expense.created_by,
-            created_at: new Date(expense.created_at),
-            updated_at: new Date(expense.updated_at)
-          }));
-          setProjectExpenses(expenses);
-        }
-      } catch (error) {
+      if (error) {
         console.error('Erreur lors du chargement des dépenses:', error);
         setProjectExpenses([]);
-      } finally {
-        setExpensesLoading(false);
+      } else {
+        const expenses: ProjectExpense[] = data.map(expense => ({
+          id: expense.id,
+          projet_id: expense.projet_id,
+          date_depense: new Date(expense.date_depense),
+          intitule: expense.intitule,
+          montant: expense.montant,
+          devise: expense.devise,
+          taux_conversion: expense.taux_conversion,
+          montant_converti: expense.montant_converti,
+          rubrique: expense.rubrique,
+          piece_jointe_url: expense.piece_jointe_url,
+          piece_jointe_nom: expense.piece_jointe_nom,
+          piece_jointe_type: expense.piece_jointe_type,
+          piece_jointe_taille: expense.piece_jointe_taille,
+          created_by: expense.created_by,
+          created_at: new Date(expense.created_at),
+          updated_at: new Date(expense.updated_at)
+        }));
+        setProjectExpenses(expenses);
       }
-    };
+    } catch (error) {
+      console.error('Erreur lors du chargement des dépenses:', error);
+      setProjectExpenses([]);
+    } finally {
+      setExpensesLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadExpenses();
   }, [project.id, hasBudget]);
 
