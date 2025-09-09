@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, LogIn, Eye, EyeOff, User, Lock } from 'lucide-react';
 import { User as UserType, AuthUser } from '../types';
-import { SupabaseService } from '../services/supabaseService';
+import { useAuth } from '../hooks/useSupabase';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -16,6 +16,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, users
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,17 +25,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, users
     setIsLoading(true);
 
     try {
-      const { user: authUser } = await SupabaseService.signIn(email, password);
+      const { user: authUser } = await signIn(email, password);
       if (authUser) {
-        const currentUser = await SupabaseService.getCurrentUser();
-        if (currentUser) {
-          onLogin(currentUser);
+        // L'utilisateur sera automatiquement récupéré par le hook useAuth
+        // On attend un peu pour que le hook se mette à jour
+        setTimeout(() => {
           onClose();
           setEmail('');
           setPassword('');
-        }
+        }, 100);
       }
     } catch (err) {
+      console.error('Erreur de connexion:', err);
       setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la connexion');
     } finally {
       setIsLoading(false);

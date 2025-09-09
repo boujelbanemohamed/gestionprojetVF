@@ -48,8 +48,13 @@ export function useAuth() {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const data = await SupabaseService.signIn(email, password);
-    return data;
+    try {
+      const data = await SupabaseService.signIn(email, password);
+      return data;
+    } catch (error) {
+      console.error('Erreur lors de la connexion:', error);
+      throw error;
+    }
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
