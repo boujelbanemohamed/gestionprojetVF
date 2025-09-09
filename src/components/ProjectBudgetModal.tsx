@@ -46,13 +46,15 @@ interface ProjectBudgetModalProps {
   onClose: () => void;
   project: Project;
   onUpdateProject: (project: Project) => void;
+  currentUser?: { id: string; nom: string; prenom: string };
 }
 
 const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
   isOpen,
   onClose,
   project,
-  onUpdateProject
+  onUpdateProject,
+  currentUser
 }) => {
   const [expenses, setExpenses] = useState<ProjectExpense[]>([]);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
@@ -238,7 +240,7 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
           piece_jointe_type: newExpense.piece_jointe?.type,
           piece_jointe_taille: newExpense.piece_jointe?.size,
           piece_jointe_url: newExpense.piece_jointe ? URL.createObjectURL(newExpense.piece_jointe) : undefined,
-          created_by: 'current-user' // En production, utiliser l'ID de l'utilisateur connecté
+          created_by: currentUser?.id || 'unknown-user'
         });
 
       if (error) {

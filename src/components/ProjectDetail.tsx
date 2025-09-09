@@ -1103,6 +1103,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       onClose={() => setIsBudgetModalOpen(false)}
       project={project}
       onUpdateProject={onUpdateProject}
+      currentUser={currentUser}
     />
 
     {/* Project Members Management Modal */}
