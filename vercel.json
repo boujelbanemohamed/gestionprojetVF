@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_SUPABASE_URL": "https://gcrmagqcfdkouvxdmetq.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjcm1hZ3FjZmRrb3V2eGRtZXRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NzA0NzEsImV4cCI6MjA3MjI0NjQ3MX0.ldh_7ybh_yGyEB2h2wcroikF6bCOdpuNxwN1CI-l9Zo"
+  }
+}
