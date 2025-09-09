@@ -97,20 +97,44 @@ export const calculateBudgetSummary = (
   deviseBudget: string,
   expenses: ProjectExpense[]
 ): BudgetSummary => {
+  console.log('calculateBudgetSummary called with:', {
+    budgetInitial,
+    deviseBudget,
+    expenses: expenses.map(e => ({
+      id: e.id,
+      montant: e.montant,
+      devise: e.devise,
+      montant_converti: e.montant_converti
+    }))
+  });
+
   // Calculate total expenses in budget currency
   const totalDepenses = expenses.reduce((sum, expense) => {
+    console.log('Processing expense:', {
+      id: expense.id,
+      montant: expense.montant,
+      devise: expense.devise,
+      montant_converti: expense.montant_converti,
+      budgetDevise: deviseBudget
+    });
+
     if (expense.montant_converti !== undefined) {
+      console.log('Using montant_converti:', expense.montant_converti);
       return sum + expense.montant_converti;
     }
     
     if (expense.devise === deviseBudget) {
+      console.log('Using direct montant:', expense.montant);
       return sum + expense.montant;
     }
     
     // Convert if needed
     const convertedAmount = convertAmount(expense.montant, expense.devise, deviseBudget);
+    console.log('Converted amount:', convertedAmount);
     return sum + convertedAmount;
   }, 0);
+
+  console.log('Total depenses calculated:', totalDepenses);
 
   const montantRestant = budgetInitial - totalDepenses;
   const pourcentageConsommation = budgetInitial > 0 ? (totalDepenses / budgetInitial) * 100 : 0;
