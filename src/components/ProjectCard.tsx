@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Users, BarChart3, Download, Building, FileText, Trash2, MoreVertical, DollarSign, Clock, AlertTriangle, User, Archive } from 'lucide-react';
 import { Project } from '../types';
 import { getProjectStats } from '../utils/calculations';
 import { exportProjectToExcel } from '../utils/export';
 import { isProjectApproachingDeadline, isProjectOverdue, getDaysUntilDeadline, getAlertMessage, getAlertSeverity, getAlertColorClasses, DEFAULT_ALERT_THRESHOLD } from '../utils/alertsConfig';
-import { calculateBudgetSummary, getBudgetStatusColor, formatCurrency } from '../utils/budgetCalculations';
+import { calculateBudgetSummary, getBudgetStatusColor, formatCurrency, BudgetSummary } from '../utils/budgetCalculations';
+import { supabase } from '../services/supabase';
 
 interface ProjectExpense {
   id: string;
@@ -33,7 +34,75 @@ interface ProjectCardProps {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete }) => {
   const [showActions, setShowActions] = useState(false);
+  const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
+  const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
+  const [expensesLoading, setExpensesLoading] = useState(false);
   const stats = getProjectStats(project.taches);
+
+  // Check if project has budget
+  const hasBudget = project.budget_initial && project.budget_initial > 0;
+
+  // Load expenses for budget calculation
+  const loadExpenses = async () => {
+    if (!hasBudget) {
+      setExpensesLoading(false);
+      return;
+    }
+
+    setExpensesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('projet_depenses')
+        .select('*')
+        .eq('projet_id', project.id)
+        .order('date_depense', { ascending: false });
+
+      if (error) {
+        console.error('Erreur lors du chargement des dépenses:', error);
+        setProjectExpenses([]);
+      } else {
+        const expenses: ProjectExpense[] = data.map(expense => ({
+          id: expense.id,
+          projet_id: expense.projet_id,
+          date_depense: new Date(expense.date_depense),
+          intitule: expense.intitule,
+          montant: expense.montant,
+          devise: expense.devise,
+          taux_conversion: expense.taux_conversion,
+          montant_converti: expense.montant_converti,
+          rubrique: expense.rubrique,
+          piece_jointe_url: expense.piece_jointe_url,
+          piece_jointe_nom: expense.piece_jointe_nom,
+          piece_jointe_type: expense.piece_jointe_type,
+          piece_jointe_taille: expense.piece_jointe_taille,
+          created_by: expense.created_by,
+          created_at: new Date(expense.created_at),
+          updated_at: new Date(expense.updated_at)
+        }));
+        setProjectExpenses(expenses);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des dépenses:', error);
+      setProjectExpenses([]);
+    } finally {
+      setExpensesLoading(false);
+    }
+  };
+
+  // Load expenses when component mounts or project changes
+  useEffect(() => {
+    loadExpenses();
+  }, [project.id, hasBudget]);
+
+  // Calculate budget summary when expenses change
+  useEffect(() => {
+    if (hasBudget && projectExpenses.length >= 0) {
+      const summary = calculateBudgetSummary(project.budget_initial!, project.devise!, projectExpenses);
+      setBudgetSummary(summary);
+    } else {
+      setBudgetSummary(null);
+    }
+  }, [project.budget_initial, project.devise, projectExpenses]);
 
   const handleExport = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -63,10 +132,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info';
   const alertColorClasses = getAlertColorClasses(alertSeverity);
   
-  // Calculate budget summary if budget is defined
-  // Note: ProjectCard ne charge pas les dépenses pour des raisons de performance
-  // La synthèse budgétaire sera mise à jour via ProjectDetail
-  const budgetSummary = null; // Désactivé pour éviter les appels API multiples
+  // Budget summary is now calculated above with useEffect
   
   // Get project manager
   const projectManager = project.responsable_id 
