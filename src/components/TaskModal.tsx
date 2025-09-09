@@ -89,20 +89,25 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             date_realisation: new Date(taskDate),
             projet_id: projectId
           });
+          
+          // Pour une nouvelle tâche, on ne fait que fermer le modal
+          // Les données seront rechargées automatiquement
+          onClose();
+        } else {
+          // Pour une tâche existante, on appelle onSubmit pour la mise à jour locale
+          onSubmit({
+            nom: taskName.trim(),
+            description: taskDescription.trim() || undefined,
+            scenario_execution: scenarioExecution.trim() || undefined,
+            criteres_acceptation: criteresAcceptation.trim() || undefined,
+            etat: taskStatus,
+            date_realisation: new Date(taskDate),
+            projet_id: projectId,
+            utilisateurs: selectedUsers,
+            attachments: allAttachments.length > 0 ? allAttachments : undefined
+          });
+          onClose();
         }
-
-        onSubmit({
-          nom: taskName.trim(),
-          description: taskDescription.trim() || undefined,
-          scenario_execution: scenarioExecution.trim() || undefined,
-          criteres_acceptation: criteresAcceptation.trim() || undefined,
-          etat: taskStatus,
-          date_realisation: new Date(taskDate),
-          projet_id: projectId,
-          utilisateurs: selectedUsers,
-          attachments: allAttachments.length > 0 ? allAttachments : undefined
-        });
-        onClose();
       } catch (error) {
         console.error('Erreur lors de la sauvegarde de la tâche:', error);
         alert('Erreur lors de la sauvegarde de la tâche');
