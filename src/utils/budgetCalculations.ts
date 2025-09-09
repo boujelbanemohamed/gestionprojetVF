@@ -40,7 +40,7 @@ export const CURRENCIES: Currency[] = [
   { code: 'CAD', name: 'Dollar canadien', symbol: 'C$' },
   { code: 'CHF', name: 'Franc suisse', symbol: 'CHF' },
   { code: 'AUD', name: 'Dollar australien', symbol: 'A$' },
-  { code: 'TND', name: 'Dinar tunisien', symbol: 'TND' },
+  { code: 'TND', name: 'Dinar tunisien', symbol: 'د.ت' },
 ];
 
 // Mock exchange rates - in a real app, these would come from an API

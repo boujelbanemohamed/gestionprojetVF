@@ -349,6 +349,7 @@ const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
                 <option value="CAD">CAD ($)</option>
                 <option value="CHF">CHF (Fr)</option>
                 <option value="AUD">AUD ($)</option>
+                <option value="TND">TND (د.ت)</option>
               </select>
             </div>
           </div>
