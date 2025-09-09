@@ -67,23 +67,31 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
 
   // Add user to project
   const handleAddUser = async (user: UserType) => {
-    // For demo purposes, we'll add the user to the first incomplete task
-    // In a real app, you might want to let the user choose which tasks to assign
-    const incompleteTask = project.taches.find(task => task.etat !== 'cloturee');
+    // Find a task where the user is not already assigned
+    const availableTask = project.taches.find(task => 
+      task.etat !== 'cloturee' && 
+      !task.utilisateurs.some(u => u.id === user.id)
+    );
     
-    if (incompleteTask) {
+    if (availableTask) {
+      // User is not assigned to this task, we can proceed
+
       try {
         // Save to database
         const { error } = await supabase
           .from('tache_utilisateurs')
           .insert({
-            tache_id: incompleteTask.id,
+            tache_id: availableTask.id,
             user_id: user.id
           });
 
         if (error) {
           console.error('Erreur lors de l\'ajout du membre:', error);
-          alert('Erreur lors de l\'ajout du membre');
+          if (error.code === '23505') {
+            alert(`${user.prenom} ${user.nom} est déjà assigné(e) à cette tâche.`);
+          } else {
+            alert('Erreur lors de l\'ajout du membre');
+          }
           return;
         }
 
@@ -94,7 +102,16 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
         alert('Erreur lors de l\'ajout du membre');
       }
     } else {
-      alert('Aucune tâche disponible pour assigner ce membre. Créez d\'abord une tâche.');
+      // Check if user is already assigned to all incomplete tasks
+      const incompleteTasks = project.taches.filter(task => task.etat !== 'cloturee');
+      const isAssignedToAll = incompleteTasks.length > 0 && 
+        incompleteTasks.every(task => task.utilisateurs.some(u => u.id === user.id));
+      
+      if (isAssignedToAll) {
+        alert(`${user.prenom} ${user.nom} est déjà assigné(e) à toutes les tâches incomplètes du projet.`);
+      } else {
+        alert('Aucune tâche disponible pour assigner ce membre. Créez d\'abord une tâche.');
+      }
     }
   };
 
