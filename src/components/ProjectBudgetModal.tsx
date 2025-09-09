@@ -249,8 +249,8 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
         return;
       }
 
-      // Ajouter à l'état local
-      setExpenses(prev => [...prev, expense]);
+      // Recharger les dépenses depuis Supabase pour avoir les vraies données
+      await loadProjectExpenses();
       
       // Reset form
       setNewExpense({
