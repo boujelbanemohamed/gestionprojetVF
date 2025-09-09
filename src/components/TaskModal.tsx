@@ -57,37 +57,56 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
     }
   }, [task, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (taskName.trim() && taskDate && selectedUsers.length > 0) {
-      const currentUser = getCurrentUser();
-      
-      // Convert new files to TaskAttachment objects
-      const newTaskAttachments: TaskAttachment[] = newAttachments.map(file => ({
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        nom: file.name,
-        taille: file.size,
-        type: file.type,
-        url: URL.createObjectURL(file), // In a real app, this would be the server URL
-        uploaded_at: new Date(),
-        uploaded_by: currentUser
-      }));
+      try {
+        const currentUser = getCurrentUser();
+        
+        // Convert new files to TaskAttachment objects
+        const newTaskAttachments: TaskAttachment[] = newAttachments.map(file => ({
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          nom: file.name,
+          taille: file.size,
+          type: file.type,
+          url: URL.createObjectURL(file), // In a real app, this would be the server URL
+          uploaded_at: new Date(),
+          uploaded_by: currentUser
+        }));
 
-      // Combine existing and new attachments
-      const allAttachments = [...existingAttachments, ...newTaskAttachments];
+        // Combine existing and new attachments
+        const allAttachments = [...existingAttachments, ...newTaskAttachments];
 
-      onSubmit({
-        nom: taskName.trim(),
-        description: taskDescription.trim() || undefined,
-        scenario_execution: scenarioExecution.trim() || undefined,
-        criteres_acceptation: criteresAcceptation.trim() || undefined,
-        etat: taskStatus,
-        date_realisation: new Date(taskDate),
-        projet_id: projectId,
-        utilisateurs: selectedUsers,
-        attachments: allAttachments.length > 0 ? allAttachments : undefined
-      });
-      onClose();
+        // Sauvegarder en base de données si c'est une nouvelle tâche
+        if (!task) {
+          const { SupabaseService } = await import('../services/supabaseService');
+          await SupabaseService.createTask({
+            nom: taskName.trim(),
+            description: taskDescription.trim() || undefined,
+            scenario_execution: scenarioExecution.trim() || undefined,
+            criteres_acceptation: criteresAcceptation.trim() || undefined,
+            etat: taskStatus,
+            date_realisation: new Date(taskDate),
+            projet_id: projectId
+          });
+        }
+
+        onSubmit({
+          nom: taskName.trim(),
+          description: taskDescription.trim() || undefined,
+          scenario_execution: scenarioExecution.trim() || undefined,
+          criteres_acceptation: criteresAcceptation.trim() || undefined,
+          etat: taskStatus,
+          date_realisation: new Date(taskDate),
+          projet_id: projectId,
+          utilisateurs: selectedUsers,
+          attachments: allAttachments.length > 0 ? allAttachments : undefined
+        });
+        onClose();
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde de la tâche:', error);
+        alert('Erreur lors de la sauvegarde de la tâche');
+      }
     }
   };
 

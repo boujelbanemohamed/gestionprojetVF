@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, DollarSign, Plus, Calendar, FileText, Upload, Download, Trash2, Calculator, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Project } from '../types';
+import { supabase } from '../services/supabase';
 import { 
   CURRENCIES, 
   calculateBudgetSummary, 
@@ -89,37 +90,58 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
     }
   }, [project.budget_initial, project.devise, expenses]);
 
-  const loadProjectExpenses = () => {
-    // Mock expenses - in a real app, this would fetch from API
-    const mockExpenses: ProjectExpense[] = [
-      {
-        id: '1',
-        projet_id: project.id,
-        date_depense: new Date('2024-02-01'),
-        intitule: 'Licences logiciels de développement',
-        montant: 2500,
-        devise: 'EUR',
-        rubrique: 'logiciel',
-        created_by: 'user1',
-        created_at: new Date('2024-02-01'),
-        updated_at: new Date('2024-02-01')
-      },
-      {
-        id: '2',
-        projet_id: project.id,
-        date_depense: new Date('2024-02-15'),
-        intitule: 'Prestation externe design UX',
-        montant: 3500,
-        devise: 'USD',
-        taux_conversion: 0.92,
-        montant_converti: 3220,
-        rubrique: 'prestation',
-        created_by: 'user1',
-        created_at: new Date('2024-02-15'),
-        updated_at: new Date('2024-02-15')
+  const loadProjectExpenses = async () => {
+    try {
+      // Charger les dépenses depuis Supabase
+      const { data, error } = await supabase
+        .from('projet_depenses')
+        .select('*')
+        .eq('projet_id', project.id)
+        .order('date_depense', { ascending: false });
+
+      if (error) {
+        console.error('Erreur lors du chargement des dépenses:', error);
+        // Fallback sur des données mock en cas d'erreur
+        const mockExpenses: ProjectExpense[] = [
+          {
+            id: '1',
+            projet_id: project.id,
+            date_depense: new Date('2024-02-01'),
+            intitule: 'Licences logiciels de développement',
+            montant: 2500,
+            devise: 'EUR',
+            rubrique: 'logiciel',
+            created_by: 'user1',
+            created_at: new Date('2024-02-01'),
+            updated_at: new Date('2024-02-01')
+          }
+        ];
+        setExpenses(mockExpenses);
+      } else {
+        const expenses: ProjectExpense[] = data.map(expense => ({
+          id: expense.id,
+          projet_id: expense.projet_id,
+          date_depense: new Date(expense.date_depense),
+          intitule: expense.intitule,
+          montant: expense.montant,
+          devise: expense.devise,
+          taux_conversion: expense.taux_conversion,
+          montant_converti: expense.montant_converti,
+          rubrique: expense.rubrique,
+          piece_jointe_url: expense.piece_jointe_url,
+          piece_jointe_nom: expense.piece_jointe_nom,
+          piece_jointe_type: expense.piece_jointe_type,
+          piece_jointe_taille: expense.piece_jointe_taille,
+          created_by: expense.created_by,
+          created_at: new Date(expense.created_at),
+          updated_at: new Date(expense.updated_at)
+        }));
+        setExpenses(expenses);
       }
-    ];
-    setExpenses(mockExpenses);
+    } catch (error) {
+      console.error('Erreur lors du chargement des dépenses:', error);
+      setExpenses([]);
+    }
   };
 
   const loadExpenseCategories = () => {
@@ -155,7 +177,7 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
     }));
   };
 
-  const handleAddExpense = () => {
+  const handleAddExpense = async () => {
     const montant = parseFloat(newExpense.montant);
     if (!newExpense.intitule.trim() || !montant || montant <= 0) {
       alert('Veuillez remplir tous les champs obligatoires');
@@ -199,20 +221,51 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
       expense.piece_jointe_url = URL.createObjectURL(newExpense.piece_jointe);
     }
 
-    setExpenses(prev => [...prev, expense]);
-    
-    // Reset form
-    setNewExpense({
-      date_depense: new Date().toISOString().split('T')[0],
-      intitule: '',
-      montant: '',
-      devise: project.devise || 'EUR',
-      rubrique: '',
-      taux_conversion: '',
-      piece_jointe: null
-    });
-    setConversionResult(null);
-    setIsAddingExpense(false);
+    // Sauvegarder en base de données
+    try {
+      const { error } = await supabase
+        .from('projet_depenses')
+        .insert({
+          projet_id: project.id,
+          date_depense: newExpense.date_depense,
+          intitule: newExpense.intitule.trim(),
+          montant: montant,
+          devise: newExpense.devise,
+          taux_conversion: newExpense.devise !== budgetCurrency ? tauxConversion : undefined,
+          montant_converti: newExpense.devise !== budgetCurrency ? montantConverti : undefined,
+          rubrique: newExpense.rubrique || undefined,
+          piece_jointe_nom: newExpense.piece_jointe?.name,
+          piece_jointe_type: newExpense.piece_jointe?.type,
+          piece_jointe_taille: newExpense.piece_jointe?.size,
+          piece_jointe_url: newExpense.piece_jointe ? URL.createObjectURL(newExpense.piece_jointe) : undefined,
+          created_by: 'current-user' // En production, utiliser l'ID de l'utilisateur connecté
+        });
+
+      if (error) {
+        console.error('Erreur lors de la sauvegarde de la dépense:', error);
+        alert('Erreur lors de la sauvegarde de la dépense');
+        return;
+      }
+
+      // Ajouter à l'état local
+      setExpenses(prev => [...prev, expense]);
+      
+      // Reset form
+      setNewExpense({
+        date_depense: new Date().toISOString().split('T')[0],
+        intitule: '',
+        montant: '',
+        devise: project.devise || 'EUR',
+        rubrique: '',
+        taux_conversion: '',
+        piece_jointe: null
+      });
+      setConversionResult(null);
+      setIsAddingExpense(false);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la dépense:', error);
+      alert('Erreur lors de la sauvegarde de la dépense');
+    }
   };
 
   const handleDeleteExpense = (expenseId: string) => {
