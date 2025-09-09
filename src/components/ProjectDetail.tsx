@@ -63,9 +63,10 @@ interface ProjectDetailProps {
   departments: Department[];
   currentUser: AuthUser;
   meetingMinutes?: any[];
+  onRefresh?: () => void; // Callback pour recharger les données
 }
 
-const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdateProject, availableUsers, departments, currentUser, meetingMinutes = [] }) => {
+const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdateProject, availableUsers, departments, currentUser, meetingMinutes = [], onRefresh }) => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -1119,6 +1120,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       project={project}
       availableUsers={availableUsers}
       onUpdateProject={onUpdateProject}
+      onRefresh={() => {
+        // Recharger les projets pour synchroniser les données
+        console.log('Rechargement des données...');
+        if (onRefresh) {
+          onRefresh();
+        }
+      }}
     />
 
     {/* Project Info Modal */}

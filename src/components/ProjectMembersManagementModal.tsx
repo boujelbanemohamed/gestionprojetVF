@@ -9,6 +9,7 @@ interface ProjectMembersManagementModalProps {
   project: Project;
   availableUsers: UserType[];
   onUpdateProject: (project: Project) => void;
+  onRefresh?: () => void; // Callback pour recharger les données
 }
 
 const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps> = ({
@@ -16,7 +17,8 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
   onClose,
   project,
   availableUsers,
-  onUpdateProject
+  onUpdateProject,
+  onRefresh
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -96,7 +98,10 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
         }
 
         console.log('Membre ajouté avec succès');
-        // Les données seront rechargées automatiquement
+        // Recharger les données
+        if (onRefresh) {
+          onRefresh();
+        }
       } catch (error) {
         console.error('Erreur lors de l\'ajout du membre:', error);
         alert('Erreur lors de l\'ajout du membre');
@@ -141,7 +146,10 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
         }
 
         console.log('Membre supprimé avec succès');
-        // Les données seront rechargées automatiquement
+        // Recharger les données
+        if (onRefresh) {
+          onRefresh();
+        }
       } catch (error) {
         console.error('Erreur lors de la suppression du membre:', error);
         alert('Erreur lors de la suppression du membre');

@@ -41,7 +41,7 @@ function App() {
   const { user: currentUser, loading: authLoading, signIn, signUp, signOut } = useAuth();
   const { departments, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
   const { users, updateUser, deleteUser } = useUsers();
-  const { projects, createProject, updateProject, deleteProject } = useProjects();
+  const { projects, createProject, updateProject, deleteProject, refetch: refetchProjects } = useProjects();
   
   const [currentRoute, setCurrentRoute] = useState<RouteConfig>(Router.getCurrentRoute());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -578,6 +578,7 @@ function App() {
           departments={departments}
           currentUser={currentUser}
           meetingMinutes={meetingMinutes}
+          onRefresh={refetchProjects}
         />
       )}
       
