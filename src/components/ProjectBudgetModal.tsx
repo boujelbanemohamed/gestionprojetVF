@@ -270,17 +270,35 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
     }
   };
 
-  const handleDeleteExpense = (expenseId: string) => {
+  const handleDeleteExpense = async (expenseId: string) => {
     const expense = expenses.find(e => e.id === expenseId);
     if (!expense) return;
 
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer la dépense "${expense.intitule}" ?`)) {
-      // Clean up file URL if it exists
-      if (expense.piece_jointe_url && expense.piece_jointe_url.startsWith('blob:')) {
-        URL.revokeObjectURL(expense.piece_jointe_url);
+      try {
+        // Supprimer de la base de données
+        const { error } = await supabase
+          .from('projet_depenses')
+          .delete()
+          .eq('id', expenseId);
+
+        if (error) {
+          console.error('Erreur lors de la suppression de la dépense:', error);
+          alert('Erreur lors de la suppression de la dépense');
+          return;
+        }
+
+        // Clean up file URL if it exists
+        if (expense.piece_jointe_url && expense.piece_jointe_url.startsWith('blob:')) {
+          URL.revokeObjectURL(expense.piece_jointe_url);
+        }
+        
+        // Supprimer de l'état local
+        setExpenses(prev => prev.filter(e => e.id !== expenseId));
+      } catch (error) {
+        console.error('Erreur lors de la suppression de la dépense:', error);
+        alert('Erreur lors de la suppression de la dépense');
       }
-      
-      setExpenses(prev => prev.filter(e => e.id !== expenseId));
     }
   };
 
