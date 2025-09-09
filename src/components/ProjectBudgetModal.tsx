@@ -47,6 +47,7 @@ interface ProjectBudgetModalProps {
   project: Project;
   onUpdateProject: (project: Project) => void;
   currentUser?: { id: string; nom: string; prenom: string };
+  onExpenseAdded?: () => void;
 }
 
 const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
@@ -54,7 +55,8 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
   onClose,
   project,
   onUpdateProject,
-  currentUser
+  currentUser,
+  onExpenseAdded
 }) => {
   const [expenses, setExpenses] = useState<ProjectExpense[]>([]);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
@@ -251,6 +253,11 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
 
       // Recharger les dépenses depuis Supabase pour avoir les vraies données
       await loadProjectExpenses();
+      
+      // Notifier le composant parent qu'une dépense a été ajoutée
+      if (onExpenseAdded) {
+        onExpenseAdded();
+      }
       
       // Reset form
       setNewExpense({

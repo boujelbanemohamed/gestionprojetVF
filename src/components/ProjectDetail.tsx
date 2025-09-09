@@ -1108,6 +1108,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       project={project}
       onUpdateProject={onUpdateProject}
       currentUser={currentUser}
+      onExpenseAdded={() => {
+        // Recharger les dépenses quand une dépense est ajoutée
+        loadExpenses();
+      }}
     />
 
     {/* Project Members Management Modal */}
