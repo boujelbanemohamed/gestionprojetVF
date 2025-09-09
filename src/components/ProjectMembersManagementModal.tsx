@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Users, Plus, Trash2, AlertTriangle, User, Building, Briefcase, Search } from 'lucide-react';
 import { Project, User as UserType } from '../types';
+import { supabase } from '../services/supabase';
 
 interface ProjectMembersManagementModalProps {
   isOpen: boolean;
@@ -65,36 +66,40 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
   };
 
   // Add user to project
-  const handleAddUser = (user: UserType) => {
+  const handleAddUser = async (user: UserType) => {
     // For demo purposes, we'll add the user to the first incomplete task
     // In a real app, you might want to let the user choose which tasks to assign
     const incompleteTask = project.taches.find(task => task.etat !== 'cloturee');
     
     if (incompleteTask) {
-      const updatedTasks = project.taches.map(task => {
-        if (task.id === incompleteTask.id) {
-          return {
-            ...task,
-            utilisateurs: [...task.utilisateurs, user]
-          };
+      try {
+        // Save to database
+        const { error } = await supabase
+          .from('tache_utilisateurs')
+          .insert({
+            tache_id: incompleteTask.id,
+            user_id: user.id
+          });
+
+        if (error) {
+          console.error('Erreur lors de l\'ajout du membre:', error);
+          alert('Erreur lors de l\'ajout du membre');
+          return;
         }
-        return task;
-      });
 
-      const updatedProject = {
-        ...project,
-        taches: updatedTasks,
-        updated_at: new Date()
-      };
-
-      onUpdateProject(updatedProject);
+        console.log('Membre ajouté avec succès');
+        // Les données seront rechargées automatiquement
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout du membre:', error);
+        alert('Erreur lors de l\'ajout du membre');
+      }
     } else {
       alert('Aucune tâche disponible pour assigner ce membre. Créez d\'abord une tâche.');
     }
   };
 
   // Remove user from project
-  const handleRemoveUser = (user: UserType) => {
+  const handleRemoveUser = async (user: UserType) => {
     const userTasks = getUserTasks(user.id);
     
     if (!canRemoveUser(user.id)) {
@@ -104,18 +109,26 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
     }
 
     if (window.confirm(`Êtes-vous sûr de vouloir retirer ${user.prenom} ${user.nom} du projet ?`)) {
-      const updatedTasks = project.taches.map(task => ({
-        ...task,
-        utilisateurs: task.utilisateurs.filter(u => u.id !== user.id)
-      }));
+      try {
+        // Remove from database
+        const { error } = await supabase
+          .from('tache_utilisateurs')
+          .delete()
+          .eq('user_id', user.id)
+          .in('tache_id', userTasks.map(task => task.id));
 
-      const updatedProject = {
-        ...project,
-        taches: updatedTasks,
-        updated_at: new Date()
-      };
+        if (error) {
+          console.error('Erreur lors de la suppression du membre:', error);
+          alert('Erreur lors de la suppression du membre');
+          return;
+        }
 
-      onUpdateProject(updatedProject);
+        console.log('Membre supprimé avec succès');
+        // Les données seront rechargées automatiquement
+      } catch (error) {
+        console.error('Erreur lors de la suppression du membre:', error);
+        alert('Erreur lors de la suppression du membre');
+      }
     }
   };
 
