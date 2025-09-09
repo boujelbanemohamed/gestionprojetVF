@@ -118,7 +118,7 @@ export const calculateBudgetSummary = (
       budgetDevise: deviseBudget
     });
 
-    if (expense.montant_converti !== undefined) {
+    if (expense.montant_converti !== undefined && expense.montant_converti !== null) {
       console.log('Using montant_converti:', expense.montant_converti);
       return sum + expense.montant_converti;
     }
