@@ -64,10 +64,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   const alertColorClasses = getAlertColorClasses(alertSeverity);
   
   // Calculate budget summary if budget is defined
-  const mockExpenses: ProjectExpense[] = []; // In a real app, this would come from props or API
-  const budgetSummary = project.budget_initial && project.devise 
-    ? calculateBudgetSummary(project.budget_initial, project.devise, mockExpenses)
-    : null;
+  // Note: ProjectCard ne charge pas les dépenses pour des raisons de performance
+  // La synthèse budgétaire sera mise à jour via ProjectDetail
+  const budgetSummary = null; // Désactivé pour éviter les appels API multiples
   
   // Get project manager
   const projectManager = project.responsable_id 

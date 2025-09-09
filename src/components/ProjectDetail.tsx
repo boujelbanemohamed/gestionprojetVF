@@ -1100,7 +1100,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     {/* Project Budget Modal */}
     <ProjectBudgetModal
       isOpen={isBudgetModalOpen}
-      onClose={() => setIsBudgetModalOpen(false)}
+      onClose={() => {
+        setIsBudgetModalOpen(false);
+        // Recharger les dépenses pour mettre à jour la synthèse budgétaire
+        loadExpenses();
+      }}
       project={project}
       onUpdateProject={onUpdateProject}
       currentUser={currentUser}
