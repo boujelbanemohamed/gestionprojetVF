@@ -42,27 +42,45 @@ export class SupabaseService {
     
     if (!user) return null;
 
-    const { data: profile, error } = await supabase
-      .from('users')
-      .select(`
-        *,
-        departements(nom)
-      `)
-      .eq('id', user.id)
-      .single();
+    try {
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select(`
+          *,
+          departements(nom)
+        `)
+        .eq('id', user.id)
+        .single();
 
-    if (error) throw error;
+      if (error) {
+        console.error('Erreur lors de la récupération du profil utilisateur:', error);
+        // Retourner un utilisateur basique si le profil n'existe pas
+        return {
+          id: user.id,
+          nom: user.user_metadata?.nom || 'Utilisateur',
+          prenom: user.user_metadata?.prenom || 'Anonyme',
+          email: user.email || '',
+          fonction: user.user_metadata?.fonction || 'Non défini',
+          departement: 'Non assigné',
+          role: 'UTILISATEUR',
+          created_at: new Date(user.created_at)
+        };
+      }
 
-    return {
-      id: profile.id,
-      nom: profile.nom,
-      prenom: profile.prenom,
-      email: profile.email,
-      fonction: profile.fonction,
-      departement: profile.departements?.nom || 'Non assigné',
-      role: profile.role,
-      created_at: new Date(profile.created_at)
-    };
+      return {
+        id: profile.id,
+        nom: profile.nom,
+        prenom: profile.prenom,
+        email: profile.email,
+        fonction: profile.fonction,
+        departement: profile.departements?.nom || 'Non assigné',
+        role: profile.role,
+        created_at: new Date(profile.created_at)
+      };
+    } catch (error) {
+      console.error('Erreur lors de la récupération du profil utilisateur:', error);
+      return null;
+    }
   }
 
   // Departments

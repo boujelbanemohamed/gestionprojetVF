@@ -10,19 +10,31 @@ export function useAuth() {
 
   useEffect(() => {
     // Get initial user
-    SupabaseService.getCurrentUser()
-      .then(setUser)
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    const initAuth = async () => {
+      try {
+        const currentUser = await SupabaseService.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
+        
         if (session?.user) {
           try {
             const currentUser = await SupabaseService.getCurrentUser();
             setUser(currentUser);
-          } catch {
+          } catch (error) {
+            console.error('Erreur lors de la récupération du profil utilisateur:', error);
             setUser(null);
           }
         } else {
