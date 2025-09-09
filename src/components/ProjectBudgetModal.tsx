@@ -251,13 +251,13 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
         return;
       }
 
-      // Recharger les dépenses depuis Supabase pour avoir les vraies données
-      await loadProjectExpenses();
-      
       // Notifier le composant parent qu'une dépense a été ajoutée
       if (onExpenseAdded) {
-        onExpenseAdded();
+        await onExpenseAdded();
       }
+      
+      // Recharger les dépenses depuis Supabase pour avoir les vraies données
+      await loadProjectExpenses();
       
       // Reset form
       setNewExpense({

@@ -94,6 +94,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Load real expenses from Supabase
   const loadExpenses = async () => {
+    console.log('Loading expenses for project:', project.id);
+    
     if (!hasBudget) {
       setExpensesLoading(false);
       return;
@@ -110,6 +112,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         console.error('Erreur lors du chargement des dépenses:', error);
         setProjectExpenses([]);
       } else {
+        console.log('Loaded expenses from Supabase:', data);
         const expenses: ProjectExpense[] = data.map(expense => ({
           id: expense.id,
           projet_id: expense.projet_id,
@@ -128,6 +131,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           created_at: new Date(expense.created_at),
           updated_at: new Date(expense.updated_at)
         }));
+        console.log('Mapped expenses:', expenses);
         setProjectExpenses(expenses);
       }
     } catch (error) {
@@ -147,8 +151,16 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Calculate budget summary when expenses change
   useEffect(() => {
+    console.log('Recalculating budget summary:', {
+      hasBudget,
+      projectExpenses: projectExpenses.length,
+      budget_initial: project.budget_initial,
+      devise: project.devise
+    });
+    
     if (hasBudget && projectExpenses.length >= 0) {
       const summary = calculateBudgetSummary(project.budget_initial!, project.devise!, projectExpenses);
+      console.log('New budget summary:', summary);
       setBudgetSummary(summary);
     } else {
       setBudgetSummary(null);
@@ -1117,9 +1129,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       project={project}
       onUpdateProject={onUpdateProject}
       currentUser={currentUser}
-      onExpenseAdded={() => {
+      onExpenseAdded={async () => {
         // Recharger les dépenses quand une dépense est ajoutée
-        loadExpenses();
+        await loadExpenses();
       }}
     />
 
