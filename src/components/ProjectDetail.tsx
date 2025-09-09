@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Download, BarChart3, Calendar, Users, Building, FileText, User, X, Edit2, Grid3X3, List, Clock, Play, CheckCircle, Paperclip, BarChart, Star, ExternalLink, Lightbulb, TrendingUp, DollarSign, FileText as FileText2, AlertTriangle, Bell } from 'lucide-react';
-import { Project, Task, User as UserType, Comment, Department, ProjectAttachment, ProjectExpense } from '../types';
+import { Project, Task, User as UserType, Comment, Department, ProjectAttachment, ProjectExpense, BudgetSummary } from '../types';
 import { supabase } from '../services/supabase';
 import { getProjectStats } from '../utils/calculations';
+import { calculateBudgetSummary } from '../utils/budgetCalculations';
 import { exportProjectToExcel } from '../utils/export';
 import { exportProjectToPdf } from '../utils/pdfExport';
 import TaskCard from './TaskCard';
@@ -141,10 +142,18 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     loadExpenses();
   }, [project.id, hasBudget]);
 
-  // Calculate budget summary if budget is defined
-  const budgetSummary = hasBudget 
-    ? calculateBudgetSummary(project.budget_initial!, project.devise!, projectExpenses)
-    : null;
+  // State for budget summary
+  const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
+
+  // Calculate budget summary when expenses change
+  useEffect(() => {
+    if (hasBudget && projectExpenses.length >= 0) {
+      const summary = calculateBudgetSummary(project.budget_initial!, project.devise!, projectExpenses);
+      setBudgetSummary(summary);
+    } else {
+      setBudgetSummary(null);
+    }
+  }, [project.budget_initial, project.devise, projectExpenses]);
 
   const stats = getProjectStats(project.taches);
 
