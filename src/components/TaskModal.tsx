@@ -14,6 +14,13 @@ interface TaskModalProps {
 
 const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, projectId, availableUsers, projectMembers = [] }) => {
   console.log('TaskModal props:', { projectMembers: projectMembers.length, availableUsers: availableUsers.length });
+  console.log('TaskModal validation:', {
+    taskName: taskName.trim(),
+    taskDate,
+    selectedUsers: selectedUsers.length,
+    projectMembers: projectMembers.length,
+    canSubmit: !(!taskName.trim() || !taskDate || selectedUsers.length === 0 || projectMembers.length === 0)
+  });
   const [taskName, setTaskName] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [scenarioExecution, setScenarioExecution] = useState('');
@@ -606,8 +613,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
                 ))
               )}
             </div>
-            {selectedUsers.length === 0 && projectMembers.length > 0 && (
+            {selectedUsers.length === 0 && (
               <p className="text-sm text-red-600 mt-2">Veuillez sélectionner au moins une personne</p>
+            )}
+            {projectMembers.length === 0 && (
+              <p className="text-sm text-orange-600 mt-2">⚠️ Aucun membre du projet. Ajoutez d'abord des membres au projet pour pouvoir les assigner aux tâches.</p>
             )}
           </div>
 
@@ -622,7 +632,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             </button>
             <button
               type="submit"
-              disabled={!taskName.trim() || !taskDate || selectedUsers.length === 0 || projectMembers.length === 0}
+              disabled={!taskName.trim() || !taskDate || selectedUsers.length === 0}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center space-x-2"
             >
               {task ? <Save size={18} /> : <Plus size={18} />}
