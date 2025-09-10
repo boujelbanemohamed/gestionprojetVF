@@ -550,7 +550,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Handle task update from details modal (for attachment deletion)
   const handleUpdateTaskFromDetails = (updatedTask: Task) => {
-    const updatedTasks = project.taches.map(task =>
+    const updatedTasks = (project.taches || []).map(task =>
       task.id === updatedTask.id ? updatedTask : task
     );
 
