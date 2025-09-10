@@ -403,6 +403,73 @@ export class SupabaseService {
     };
   }
 
+  // Project Members (controllers)
+  static async getProjectMembers(projectId: string): Promise<User[]> {
+    const { data, error } = await supabase
+      .from('projet_membres')
+      .select('users(*)')
+      .eq('projet_id', projectId);
+
+    if (error) throw error;
+
+    return (data || [])
+      .map((row: any) => row.users)
+      .filter(Boolean)
+      .map((u: any) => ({
+        id: u.id,
+        nom: u.nom,
+        prenom: u.prenom,
+        email: u.email,
+        fonction: u.fonction,
+        departement: u.departement,
+        role: u.role,
+        created_at: new Date(u.created_at)
+      }));
+  }
+
+  static async addProjectMember(projectId: string, userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('projet_membres')
+      .insert({ projet_id: projectId, user_id: userId });
+    if (error) throw error;
+  }
+
+  static async canRemoveProjectMember(projectId: string, userId: string): Promise<{ canRemove: boolean; assignedTaskCount: number }> {
+    // Step 1: get task ids of the project
+    const { data: tasks, error: tasksError } = await supabase
+      .from('taches')
+      .select('id')
+      .eq('projet_id', projectId);
+    if (tasksError) throw tasksError;
+    const taskIds = (tasks || []).map(t => t.id);
+    if (taskIds.length === 0) return { canRemove: true, assignedTaskCount: 0 };
+
+    // Step 2: count assignments for this user on those tasks
+    const { count, error: assignError } = await supabase
+      .from('tache_utilisateurs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('tache_id', taskIds);
+    if (assignError) throw assignError;
+    return { canRemove: (count || 0) === 0, assignedTaskCount: count || 0 };
+  }
+
+  static async removeProjectMember(projectId: string, userId: string): Promise<void> {
+    const check = await this.canRemoveProjectMember(projectId, userId);
+    if (!check.canRemove) {
+      const err = new Error(`Le membre a ${check.assignedTaskCount} tâche(s) assignée(s) dans ce projet`);
+      // @ts-ignore
+      err.code = 'MEMBER_HAS_TASKS';
+      throw err;
+    }
+    const { error } = await supabase
+      .from('projet_membres')
+      .delete()
+      .eq('projet_id', projectId)
+      .eq('user_id', userId);
+    if (error) throw error;
+  }
+
   static async assignUsersToTask(taskId: string, userIds: string[]): Promise<void> {
     // First, remove existing assignments
     await supabase

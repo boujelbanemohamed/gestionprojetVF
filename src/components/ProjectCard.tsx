@@ -38,6 +38,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [expensesLoading, setExpensesLoading] = useState(false);
   const stats = getProjectStats(project.taches);
+  const [projectMemberCount, setProjectMemberCount] = useState<number>(0);
 
   // Check if project has budget
   const hasBudget = project.budget_initial && project.budget_initial > 0;
@@ -93,6 +94,28 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   useEffect(() => {
     loadExpenses();
   }, [project.id, hasBudget]);
+
+  // Load project members count from projet_membres
+  useEffect(() => {
+    const loadMembersCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('projet_membres')
+          .select('id', { count: 'exact', head: true })
+          .eq('projet_id', project.id);
+        if (error) {
+          console.error('Erreur chargement nombre de membres:', error);
+          setProjectMemberCount(0);
+        } else {
+          setProjectMemberCount(count || 0);
+        }
+      } catch (e) {
+        console.error('Erreur chargement nombre de membres:', e);
+        setProjectMemberCount(0);
+      }
+    };
+    loadMembersCount();
+  }, [project.id]);
 
   // Calculate budget summary when expenses change
   useEffect(() => {
@@ -321,9 +344,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
           </div>
           <div className="flex items-center space-x-2">
             <Users size={16} className="text-gray-400" />
-            <span className="text-gray-600">
-              {new Set(project.taches.flatMap(t => t.utilisateurs.map(u => u.id))).size} membres
-            </span>
+            <span className="text-gray-600">{projectMemberCount} membres</span>
           </div>
         </div>
 

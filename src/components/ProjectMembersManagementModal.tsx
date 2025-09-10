@@ -104,18 +104,8 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
   // Add user to project (projet_membres), no task assignment
   const handleAddUser = async (user: UserType) => {
     try {
-      const { error } = await supabase
-        .from('projet_membres')
-        .insert({ projet_id: project.id, user_id: user.id });
-      if (error) {
-        console.error('Erreur lors de l\'ajout du membre au projet:', error);
-        if ((error as any).code === '23505') {
-          alert(`${user.prenom} ${user.nom} est déjà membre du projet.`);
-        } else {
-          alert('Erreur lors de l\'ajout du membre au projet');
-        }
-        return;
-      }
+      const { SupabaseService } = await import('../services/supabaseService');
+      await SupabaseService.addProjectMember(project.id, user.id);
       // Refresh members list
       if (onRefresh) onRefresh();
       // Local refresh
@@ -138,25 +128,21 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
 
     if (window.confirm(`Êtes-vous sûr de vouloir retirer ${user.prenom} ${user.nom} du projet ?`)) {
       try {
-        // Remove from projet_membres
-        const { error } = await supabase
-          .from('projet_membres')
-          .delete()
-          .eq('projet_id', project.id)
-          .eq('user_id', user.id);
-
-        if (error) {
-          console.error('Erreur lors de la suppression du membre du projet:', error);
-          alert('Erreur lors de la suppression du membre du projet');
-          return;
-        }
+        const { SupabaseService } = await import('../services/supabaseService');
+        await SupabaseService.removeProjectMember(project.id, user.id);
 
         // Refresh members list
         if (onRefresh) onRefresh();
         setProjectMembers(prev => prev.filter(m => m.id !== user.id));
       } catch (error) {
         console.error('Erreur lors de la suppression du membre du projet:', error);
-        alert('Erreur lors de la suppression du membre du projet');
+        // @ts-ignore
+        if (error && error.code === 'MEMBER_HAS_TASKS') {
+          // @ts-ignore
+          alert(error.message || 'Le membre a des tâches assignées dans ce projet.');
+        } else {
+          alert('Erreur lors de la suppression du membre du projet');
+        }
       }
     }
   };

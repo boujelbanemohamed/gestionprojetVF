@@ -1088,7 +1088,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         isOpen={isMembersModalOpen}
         onClose={() => setIsMembersModalOpen(false)}
         projectName={project.nom}
-        members={projectMembers}
+        members={projectMembersFromDB}
       />
 
       {/* Task Comments Modal */}
