@@ -49,10 +49,12 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const data = await SupabaseService.signIn(email, password);
       return data;
     } catch (error) {
       console.error('Erreur lors de la connexion:', error);
+      setLoading(false);
       throw error;
     }
   };
@@ -63,8 +65,16 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    await SupabaseService.signOut();
-    setUser(null);
+    try {
+      setLoading(true);
+      await SupabaseService.signOut();
+      setUser(null);
+      setLoading(false);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      setLoading(false);
+      throw error;
+    }
   };
 
   return {

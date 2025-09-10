@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, LogIn, Eye, EyeOff, User, Lock } from 'lucide-react';
 import { User as UserType, AuthUser } from '../types';
 import { useAuth } from '../hooks/useSupabase';
@@ -17,7 +17,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, users
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { signIn } = useAuth();
+  const { signIn, loading: authLoading } = useAuth();
+
+  // Reset loading state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsLoading(false);
+      setError('');
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +33,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, users
     setIsLoading(true);
 
     try {
+      console.log('Attempting login with:', email);
       const { user: authUser } = await signIn(email, password);
+      console.log('Login response:', authUser);
+      
       if (authUser) {
         // L'utilisateur sera automatiquement récupéré par le hook useAuth
         // On attend un peu pour que le hook se mette à jour
@@ -33,12 +44,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, users
           onClose();
           setEmail('');
           setPassword('');
+          setIsLoading(false);
         }, 100);
+      } else {
+        setIsLoading(false);
+        setError('Échec de la connexion');
       }
     } catch (err) {
       console.error('Erreur de connexion:', err);
       setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la connexion');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -131,10 +145,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, users
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || authLoading}
             className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center space-x-2"
           >
-            {isLoading ? (
+            {(isLoading || authLoading) ? (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
             ) : (
               <>
