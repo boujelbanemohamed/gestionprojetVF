@@ -1,130 +1,78 @@
 import { useState, useEffect } from 'react';
-import { ProjectMembersService } from '../services/projectMembersService';
-import { ProjectMember, User } from '../types';
+import { SupabaseService } from '../services/supabaseService';
+import { ProjetMembre, User } from '../types';
 
-export function useProjectMembers(projectId: string) {
-  const [members, setMembers] = useState<ProjectMember[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+export function useProjectMembers(projetId: string) {
+  const [members, setMembers] = useState<ProjetMembre[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadMembers = async () => {
-    if (!projectId) return;
-    
+    if (!projetId) {
+      setMembers([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      
-      const [membersData, availableUsersData] = await Promise.all([
-        ProjectMembersService.getProjectMembers(projectId),
-        ProjectMembersService.getAvailableUsers(projectId)
-      ]);
-      
-      setMembers(membersData);
-      setAvailableUsers(availableUsersData);
+      const projectMembers = await SupabaseService.getProjectMembers(projetId);
+      setMembers(projectMembers);
     } catch (err) {
       console.error('Erreur lors du chargement des membres:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setMembers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const addMember = async (
-    userId: string, 
-    role: 'membre' | 'responsable' | 'observateur' = 'membre'
-  ) => {
+  const addMember = async (userId: string, addedBy: string, role: 'membre' | 'responsable' = 'membre') => {
     try {
-      const newMember = await ProjectMembersService.addProjectMember(projectId, userId, role);
-      setMembers(prev => [newMember, ...prev]);
-      
-      // Retirer l'utilisateur de la liste des utilisateurs disponibles
-      setAvailableUsers(prev => prev.filter(user => user.id !== userId));
-      
+      const newMember = await SupabaseService.addProjectMember(projetId, userId, addedBy, role);
+      setMembers(prev => [...prev, newMember]);
       return newMember;
     } catch (err) {
       console.error('Erreur lors de l\'ajout du membre:', err);
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\'ajout du membre');
       throw err;
     }
   };
 
   const removeMember = async (userId: string) => {
     try {
-      // Vérifier si le membre a des tâches assignées
-      const hasTasks = await ProjectMembersService.hasAssignedTasks(projectId, userId);
+      // Vérifier si l'utilisateur a des tâches assignées
+      const hasTasks = await SupabaseService.userHasTasksInProject(projetId, userId);
       if (hasTasks) {
         throw new Error('Impossible de supprimer ce membre car il a des tâches assignées dans ce projet.');
       }
 
-      await ProjectMembersService.removeProjectMember(projectId, userId);
-      
-      // Retirer le membre de la liste
-      const removedMember = members.find(m => m.utilisateur_id === userId);
-      setMembers(prev => prev.filter(m => m.utilisateur_id !== userId));
-      
-      // Remettre l'utilisateur dans la liste des utilisateurs disponibles
-      if (removedMember?.utilisateur) {
-        setAvailableUsers(prev => [...prev, removedMember.utilisateur!].sort((a, b) => 
-          a.nom.localeCompare(b.nom)
-        ));
-      }
+      await SupabaseService.removeProjectMember(projetId, userId);
+      setMembers(prev => prev.filter(member => member.user_id !== userId));
     } catch (err) {
       console.error('Erreur lors de la suppression du membre:', err);
-      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression du membre');
       throw err;
     }
   };
 
-  const updateMemberRole = async (
-    userId: string, 
-    newRole: 'membre' | 'responsable' | 'observateur'
-  ) => {
-    try {
-      const updatedMember = await ProjectMembersService.updateProjectMemberRole(
-        projectId, 
-        userId, 
-        newRole
-      );
-      
-      setMembers(prev => prev.map(m => 
-        m.utilisateur_id === userId ? updatedMember : m
-      ));
-      
-      return updatedMember;
-    } catch (err) {
-      console.error('Erreur lors de la mise à jour du rôle:', err);
-      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour du rôle');
-      throw err;
-    }
-  };
+  const getMemberCount = () => members.length;
 
-  const isProjectMember = async (userId: string): Promise<boolean> => {
-    try {
-      return await ProjectMembersService.isProjectMember(projectId, userId);
-    } catch (err) {
-      console.error('Erreur lors de la vérification du membre:', err);
-      return false;
-    }
-  };
-
-  const refreshMembers = () => {
-    loadMembers();
+  const isMember = (userId: string) => {
+    return members.some(member => member.user_id === userId);
   };
 
   useEffect(() => {
     loadMembers();
-  }, [projectId]);
+  }, [projetId]);
 
   return {
     members,
-    availableUsers,
     loading,
     error,
+    loadMembers,
     addMember,
     removeMember,
-    updateMemberRole,
-    isProjectMember,
-    refreshMembers
+    getMemberCount,
+    isMember
   };
 }

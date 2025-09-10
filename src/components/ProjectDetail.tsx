@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Download, BarChart3, Calendar, Users, Building, FileText, User, X, Edit2, Grid3X3, List, Clock, Play, CheckCircle, Paperclip, BarChart, Star, ExternalLink, Lightbulb, TrendingUp, DollarSign, FileText as FileText2, AlertTriangle, Bell } from 'lucide-react';
-import { Project, Task, User as UserType, Comment, Department, ProjectAttachment, ProjectExpense, BudgetSummary } from '../types';
+import { Project, Task, User as UserType, Comment, Department, ProjectAttachment, ProjectExpense, BudgetSummary, ProjetMembre } from '../types';
 import { supabase } from '../services/supabase';
 import { getProjectStats } from '../utils/calculations';
 import { calculateBudgetSummary } from '../utils/budgetCalculations';
@@ -20,10 +20,10 @@ import ProjectAlertSettingsModal from './ProjectAlertSettingsModal';
 import ProjectBudgetModal from './ProjectBudgetModal';
 import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor } from '../utils/budgetCalculations';
 import ProjectMembersManagementModal from './ProjectMembersManagementModal';
-import ProjectMembersManagement from './ProjectMembersManagement';
 import ProjectInfoModal from './ProjectInfoModal';
 import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';
 import { checkCanCloseProject, checkCanReopenProject } from '../utils/permissions';
+import { useProjectMembers } from '../hooks/useProjectMembers';
 import { 
   createHistoryEntry, 
   addTaskCreatedHistory, 
@@ -86,57 +86,22 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const [isPVModalOpen, setIsPVModalOpen] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState(DEFAULT_ALERT_THRESHOLD);
 
+  // Hook pour gérer les membres du projet
+  const { 
+    members: projectMembers, 
+    loading: membersLoading, 
+    addMember, 
+    removeMember, 
+    getMemberCount,
+    isMember 
+  } = useProjectMembers(project.id);
+
   // Check if project has budget defined
   const hasBudget = project.budget_initial && project.devise;
 
   // State for real expenses
   const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
-  
-  // State for project members
-  const [projectMembers, setProjectMembers] = useState<UserType[]>([]);
-
-  // Load project members
-  const loadProjectMembers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('projet_membres')
-        .select(`
-          *,
-          utilisateur:users!projet_membres_utilisateur_id_fkey (
-            id,
-            nom,
-            prenom,
-            email,
-            fonction,
-            departement,
-            role,
-            created_at
-          )
-        `)
-        .eq('projet_id', project.id);
-
-      if (error) {
-        console.error('Erreur lors du chargement des membres du projet:', error);
-        setProjectMembers([]);
-      } else {
-        const members: UserType[] = data.map(member => ({
-          id: member.utilisateur.id,
-          nom: member.utilisateur.nom,
-          prenom: member.utilisateur.prenom,
-          email: member.utilisateur.email,
-          fonction: member.utilisateur.fonction,
-          departement: member.utilisateur.departement,
-          role: member.utilisateur.role,
-          created_at: new Date(member.utilisateur.created_at)
-        }));
-        setProjectMembers(members);
-      }
-    } catch (error) {
-      console.error('Erreur lors du chargement des membres du projet:', error);
-      setProjectMembers([]);
-    }
-  };
 
   // Load real expenses from Supabase
   const loadExpenses = async () => {
@@ -190,7 +155,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   useEffect(() => {
     loadExpenses();
-    loadProjectMembers();
   }, [project.id, hasBudget]);
 
   // State for budget summary
@@ -216,14 +180,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   const stats = getProjectStats(project.taches);
 
-  // Get unique members from all tasks (legacy - now using projectMembers state)
-  const taskMembers = Array.from(
-    new Map(
-      project.taches
-        .flatMap(task => task.utilisateurs)
-        .map(user => [user.id, user])
-    ).values()
-  );
+  // projectMembers is now managed by the useProjectMembers hook
 
   // Calculate total attachments count (project + all tasks + all comments)
   const getTotalAttachmentsCount = () => {
@@ -698,7 +655,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               <div className="mt-2">
                 <p className="text-gray-600">
                   {project.taches.length} tâche{project.taches.length > 1 ? 's' : ''} • 
-                  {new Set(project.taches.flatMap(t => t.utilisateurs.map(u => u.id))).size} membre{new Set(project.taches.flatMap(t => t.utilisateurs.map(u => u.id))).size > 1 ? 's' : ''}
+                  {getMemberCount()} membre{getMemberCount() > 1 ? 's' : ''}
                 </p>
               </div>
             </div>
@@ -784,12 +741,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               )}
               <button
                 onClick={() => setIsTaskModalOpen(true)}
-                disabled={availableUsers.length === 0 || project.statut === 'cloture'}
+                disabled={getMemberCount() === 0 || project.statut === 'cloture'}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
                 title={
                   project.statut === 'cloture' 
                     ? 'Impossible de créer des tâches dans un projet clôturé'
-                    : availableUsers.length === 0 
+                    : getMemberCount() === 0 
                       ? 'Créez d\'abord des membres pour pouvoir créer des tâches' 
                       : ''
                 }
@@ -858,22 +815,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               </div>
             </div>
           )}
-        </div>
-
-        {/* Project Members Management */}
-        <div className="mb-8">
-          <ProjectMembersManagement
-            projectId={project.id}
-            currentUser={currentUser}
-            onMemberAdded={() => {
-              // Refresh project data if needed
-              console.log('Member added to project');
-            }}
-            onMemberRemoved={() => {
-              // Refresh project data if needed
-              console.log('Member removed from project');
-            }}
-          />
         </div>
 
         {/* Status Progress Cards */}
@@ -1041,7 +982,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                     {project.statut === 'cloture' ? (
                       <p>Projet clôturé - Aucune modification possible</p>
                     ) : (
-                      <p>Créez d'abord des membres pour pouvoir créer des tâches</p>
+                      <p>Créez d'abord des membres dans l'équipe du projet pour pouvoir créer des tâches</p>
                     )}
                   </div>
                 )}
@@ -1109,7 +1050,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
         task={editingTask}
         projectId={project.id}
-        availableUsers={projectMembers.length > 0 ? projectMembers : availableUsers}
+        availableUsers={projectMembers.map(member => member.user!).filter(Boolean)}
       />
 
       {/* Project Edit Modal */}
@@ -1205,6 +1146,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       project={project}
       availableUsers={availableUsers}
       onUpdateProject={onUpdateProject}
+      projectMembers={projectMembers}
+      onAddMember={addMember}
+      onRemoveMember={removeMember}
+      currentUser={currentUser}
     />
 
     {/* Project Info Modal */}

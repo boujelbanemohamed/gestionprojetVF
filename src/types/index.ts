@@ -21,16 +21,14 @@ export interface AuthUser {
   created_at: Date;
 }
 
-export interface ProjectMember {
+export interface ProjetMembre {
   id: string;
   projet_id: string;
-  utilisateur_id: string;
-  role: 'membre' | 'responsable' | 'observateur';
-  assigne_le: Date;
-  assigne_par?: string;
-  created_at: Date;
-  updated_at: Date;
-  utilisateur?: User; // Populated when fetching with user details
+  user_id: string;
+  role: 'membre' | 'responsable';
+  added_by: string;
+  added_at: Date;
+  user?: User; // User details when loaded
 }
 
 export interface CommentAttachment {

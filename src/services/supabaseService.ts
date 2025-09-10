@@ -571,4 +571,117 @@ export class SupabaseService {
       return false;
     }
   }
+
+  // ===== PROJET MEMBRES METHODS =====
+
+  // Get project members
+  static async getProjectMembers(projetId: string): Promise<ProjetMembre[]> {
+    const { data, error } = await supabase
+      .from('projet_membres')
+      .select(`
+        *,
+        user:users!projet_membres_user_id_fkey(*)
+      `)
+      .eq('projet_id', projetId)
+      .order('added_at', { ascending: true });
+
+    if (error) throw error;
+
+    return data.map(member => ({
+      id: member.id,
+      projet_id: member.projet_id,
+      user_id: member.user_id,
+      role: member.role,
+      added_by: member.added_by,
+      added_at: new Date(member.added_at),
+      user: member.user ? {
+        id: member.user.id,
+        nom: member.user.nom,
+        prenom: member.user.prenom,
+        fonction: member.user.fonction,
+        departement: member.user.departement_id ? 'Département' : 'Non assigné',
+        email: member.user.email,
+        role: member.user.role,
+        created_at: new Date(member.user.created_at)
+      } : undefined
+    }));
+  }
+
+  // Add member to project
+  static async addProjectMember(projetId: string, userId: string, addedBy: string, role: 'membre' | 'responsable' = 'membre'): Promise<ProjetMembre> {
+    const { data, error } = await supabase
+      .from('projet_membres')
+      .insert({
+        projet_id: projetId,
+        user_id: userId,
+        role: role,
+        added_by: addedBy
+      })
+      .select(`
+        *,
+        user:users!projet_membres_user_id_fkey(*)
+      `)
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      projet_id: data.projet_id,
+      user_id: data.user_id,
+      role: data.role,
+      added_by: data.added_by,
+      added_at: new Date(data.added_at),
+      user: data.user ? {
+        id: data.user.id,
+        nom: data.user.nom,
+        prenom: data.user.prenom,
+        fonction: data.user.fonction,
+        departement: data.user.departement_id ? 'Département' : 'Non assigné',
+        email: data.user.email,
+        role: data.user.role,
+        created_at: new Date(data.user.created_at)
+      } : undefined
+    };
+  }
+
+  // Remove member from project
+  static async removeProjectMember(projetId: string, userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('projet_membres')
+      .delete()
+      .eq('projet_id', projetId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  }
+
+  // Check if user has tasks in project
+  static async userHasTasksInProject(projetId: string, userId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('tache_utilisateurs')
+      .select('id')
+      .eq('user_id', userId)
+      .in('tache_id', 
+        supabase
+          .from('taches')
+          .select('id')
+          .eq('projet_id', projetId)
+      )
+      .limit(1);
+
+    if (error) throw error;
+    return data && data.length > 0;
+  }
+
+  // Get project member count
+  static async getProjectMemberCount(projetId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('projet_membres')
+      .select('*', { count: 'exact', head: true })
+      .eq('projet_id', projetId);
+
+    if (error) throw error;
+    return count || 0;
+  }
 }

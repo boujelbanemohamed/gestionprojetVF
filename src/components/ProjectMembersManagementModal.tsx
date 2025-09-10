@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Users, Plus, Trash2, AlertTriangle, User, Building, Briefcase, Search } from 'lucide-react';
-import { Project, User as UserType } from '../types';
+import { Project, User as UserType, ProjetMembre, AuthUser } from '../types';
 
 interface ProjectMembersManagementModalProps {
   isOpen: boolean;
@@ -8,6 +8,10 @@ interface ProjectMembersManagementModalProps {
   project: Project;
   availableUsers: UserType[];
   onUpdateProject: (project: Project) => void;
+  projectMembers: ProjetMembre[];
+  onAddMember: (userId: string, addedBy: string, role?: 'membre' | 'responsable') => Promise<ProjetMembre>;
+  onRemoveMember: (userId: string) => Promise<void>;
+  currentUser: AuthUser;
 }
 
 const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps> = ({
@@ -15,34 +19,21 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
   onClose,
   project,
   availableUsers,
-  onUpdateProject
+  onUpdateProject,
+  projectMembers,
+  onAddMember,
+  onRemoveMember,
+  currentUser
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [isRemoving, setIsRemoving] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  // Get current project members
-  const projectMembers = Array.from(
-    new Map(
-      project.taches
-        .flatMap(task => task.utilisateurs)
-        .map(user => [user.id, user])
-    ).values()
-  );
-
-  // Add project manager to members list if not already included
-  const allProjectMembers = [...projectMembers];
-  const projectManager = project.responsable_id 
-    ? availableUsers.find(user => user.id === project.responsable_id)
-    : null;
-    
-  if (projectManager && !projectMembers.some(member => member.id === projectManager.id)) {
-    allProjectMembers.push(projectManager);
-  }
-
   // Get available users to add (not already in project)
   const usersToAdd = availableUsers.filter(user => 
-    !allProjectMembers.some(member => member.id === user.id)
+    !projectMembers.some(member => member.user_id === user.id)
   );
 
   // Filter users based on search
@@ -59,63 +50,29 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
     );
   };
 
-  // Check if user can be removed (has no assigned tasks)
-  const canRemoveUser = (userId: string) => {
-    return getUserTasks(userId).length === 0;
-  };
-
   // Add user to project
-  const handleAddUser = (user: UserType) => {
-    // For demo purposes, we'll add the user to the first incomplete task
-    // In a real app, you might want to let the user choose which tasks to assign
-    const incompleteTask = project.taches.find(task => task.etat !== 'cloturee');
-    
-    if (incompleteTask) {
-      const updatedTasks = project.taches.map(task => {
-        if (task.id === incompleteTask.id) {
-          return {
-            ...task,
-            utilisateurs: [...task.utilisateurs, user]
-          };
-        }
-        return task;
-      });
-
-      const updatedProject = {
-        ...project,
-        taches: updatedTasks,
-        updated_at: new Date()
-      };
-
-      onUpdateProject(updatedProject);
-    } else {
-      alert('Aucune tâche disponible pour assigner ce membre. Créez d\'abord une tâche.');
+  const handleAddUser = async (user: UserType) => {
+    try {
+      setIsAdding(true);
+      await onAddMember(user.id, currentUser.id, 'membre');
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du membre:', error);
+      alert('Erreur lors de l\'ajout du membre');
+    } finally {
+      setIsAdding(false);
     }
   };
 
   // Remove user from project
-  const handleRemoveUser = (user: UserType) => {
-    const userTasks = getUserTasks(user.id);
-    
-    if (!canRemoveUser(user.id)) {
-      const taskNames = userTasks.map(task => task.nom).join(', ');
-      alert(`Impossible de supprimer ${user.prenom} ${user.nom} car il/elle est assigné(e) aux tâches suivantes :\n\n${taskNames}\n\nVeuillez d'abord retirer ce membre de ces tâches.`);
-      return;
-    }
-
-    if (window.confirm(`Êtes-vous sûr de vouloir retirer ${user.prenom} ${user.nom} du projet ?`)) {
-      const updatedTasks = project.taches.map(task => ({
-        ...task,
-        utilisateurs: task.utilisateurs.filter(u => u.id !== user.id)
-      }));
-
-      const updatedProject = {
-        ...project,
-        taches: updatedTasks,
-        updated_at: new Date()
-      };
-
-      onUpdateProject(updatedProject);
+  const handleRemoveUser = async (user: UserType) => {
+    try {
+      setIsRemoving(user.id);
+      await onRemoveMember(user.id);
+    } catch (error) {
+      console.error('Erreur lors de la suppression du membre:', error);
+      alert(error instanceof Error ? error.message : 'Erreur lors de la suppression du membre');
+    } finally {
+      setIsRemoving(null);
     }
   };
 
@@ -160,36 +117,42 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {allProjectMembers.map(member => {
-                    const userTasks = getUserTasks(member.id);
-                    const canRemove = canRemoveUser(member.id);
-                    const isProjectManager = member.id === project.responsable_id;
+                  {projectMembers.map(member => {
+                    const user = member.user;
+                    if (!user) return null;
+                    
+                    const userTasks = getUserTasks(user.id);
+                    const canRemove = userTasks.length === 0;
+                    const isProjectManager = user.id === project.responsable_id;
                     
                     return (
                       <div key={member.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                              {member.prenom.charAt(0)}{member.nom.charAt(0)}
+                              {user.prenom.charAt(0)}{user.nom.charAt(0)}
                             </div>
                             <div>
                               <h4 className="text-sm font-semibold text-gray-900">
-                                {member.prenom} {member.nom}
+                                {user.prenom} {user.nom}
                                 {isProjectManager && (
                                   <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
                                     Responsable
                                   </span>
                                 )}
+                                <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                                  {member.role}
+                                </span>
                               </h4>
                               <div className="flex items-center space-x-3 text-xs text-gray-500">
                                 <div className="flex items-center space-x-1">
                                   <Building size={12} />
-                                  <span>{member.departement}</span>
+                                  <span>{user.departement}</span>
                                 </div>
-                                {member.fonction && (
+                                {user.fonction && (
                                   <div className="flex items-center space-x-1">
                                     <Briefcase size={12} />
-                                    <span>{member.fonction}</span>
+                                    <span>{user.fonction}</span>
                                   </div>
                                 )}
                               </div>
@@ -216,10 +179,10 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
                               </div>
                             )}
                             <button
-                              onClick={() => handleRemoveUser(member)}
-                              disabled={!canRemove || isProjectManager}
+                              onClick={() => handleRemoveUser(user)}
+                              disabled={!canRemove || isProjectManager || isRemoving === user.id}
                               className={`p-2 rounded-lg transition-colors ${
-                                canRemove && !isProjectManager
+                                canRemove && !isProjectManager && isRemoving !== user.id
                                   ? 'text-gray-400 hover:text-red-600 hover:bg-red-50' 
                                   : 'text-gray-300 cursor-not-allowed'
                               }`}
@@ -231,7 +194,11 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
                                     : 'Impossible de retirer : membre assigné à des tâches'
                               }
                             >
-                              <Trash2 size={16} />
+                              {isRemoving === user.id ? (
+                                <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 size={16} />
+                              )}
                             </button>
                           </div>
                         </div>
@@ -334,10 +301,15 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
                         
                         <button
                           onClick={() => handleAddUser(user)}
-                          className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100 rounded-lg transition-colors"
+                          disabled={isAdding}
+                          className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Ajouter au projet"
                         >
-                          <Plus size={16} />
+                          {isAdding ? (
+                            <div className="w-4 h-4 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
+                          ) : (
+                            <Plus size={16} />
+                          )}
                         </button>
                       </div>
                     </div>
