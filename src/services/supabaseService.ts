@@ -616,28 +616,76 @@ export class SupabaseService {
 
   // Add member to project
   static async addProjectMember(projetId: string, userId: string, addedBy: string, role: 'membre' | 'responsable' = 'membre'): Promise<ProjetMembre> {
+    // Essayer d'abord avec added_by, puis sans si la colonne n'existe pas
+    let insertData: any = {
+      projet_id: projetId,
+      user_id: userId,
+      role: role
+    };
+
+    // Essayer d'ajouter added_by si possible
+    try {
+      insertData.added_by = addedBy;
+    } catch (e) {
+      console.warn('Colonne added_by non disponible, insertion sans cette colonne');
+    }
+
     const { data, error } = await supabase
       .from('projet_membres')
-      .insert({
-        projet_id: projetId,
-        user_id: userId,
-        role: role,
-        added_by: addedBy
-      })
+      .insert(insertData)
       .select(`
         *,
         user:users!projet_membres_user_id_fkey(*)
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Si l'erreur est due à added_by, réessayer sans cette colonne
+      if (error.message.includes('added_by')) {
+        console.warn('Retry sans added_by:', error.message);
+        const { data: retryData, error: retryError } = await supabase
+          .from('projet_membres')
+          .insert({
+            projet_id: projetId,
+            user_id: userId,
+            role: role
+          })
+          .select(`
+            *,
+            user:users!projet_membres_user_id_fkey(*)
+          `)
+          .single();
+
+        if (retryError) throw retryError;
+
+        return {
+          id: retryData.id,
+          projet_id: retryData.projet_id,
+          user_id: retryData.user_id,
+          role: retryData.role,
+          added_by: addedBy, // Utiliser la valeur passée en paramètre
+          added_at: new Date(retryData.added_at || retryData.created_at),
+          user: retryData.user ? {
+            id: retryData.user.id,
+            nom: retryData.user.nom,
+            prenom: retryData.user.prenom,
+            fonction: retryData.user.fonction,
+            departement: retryData.user.departement_id ? 'Département' : 'Non assigné',
+            email: retryData.user.email,
+            role: retryData.user.role,
+            created_at: new Date(retryData.user.created_at)
+          } : undefined
+        };
+      }
+      throw error;
+    }
 
     return {
       id: data.id,
       projet_id: data.projet_id,
       user_id: data.user_id,
       role: data.role,
-      added_by: data.added_by,
+      added_by: data.added_by || addedBy, // Fallback si added_by est null
       added_at: new Date(data.added_at || data.created_at),
       user: data.user ? {
         id: data.user.id,
