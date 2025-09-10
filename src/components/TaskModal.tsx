@@ -79,10 +79,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
         // Combine existing and new attachments
         const allAttachments = [...existingAttachments, ...newTaskAttachments];
 
-        // Sauvegarder en base de données si c'est une nouvelle tâche
+        const { SupabaseService } = await import('../services/supabaseService');
+
+        // Création de tâche
         if (!task) {
-          const { SupabaseService } = await import('../services/supabaseService');
-          await SupabaseService.createTask({
+          const created = await SupabaseService.createTask({
             nom: taskName.trim(),
             description: taskDescription.trim() || undefined,
             scenario_execution: scenarioExecution.trim() || undefined,
@@ -91,23 +92,30 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             date_realisation: new Date(taskDate),
             projet_id: projectId
           });
-          
-          // Pour une nouvelle tâche, on ne fait que fermer le modal
-          // Les données seront rechargées automatiquement
+
+          // Persister les assignations utilisateurs
+          await SupabaseService.assignUsersToTask(
+            created.id,
+            selectedUsers.map(u => u.id)
+          );
+
           onClose();
         } else {
-          // Pour une tâche existante, on appelle onSubmit pour la mise à jour locale
-          onSubmit({
+          // Mise à jour de tâche existante + assignations
+          await SupabaseService.updateTask(task.id, {
             nom: taskName.trim(),
             description: taskDescription.trim() || undefined,
             scenario_execution: scenarioExecution.trim() || undefined,
             criteres_acceptation: criteresAcceptation.trim() || undefined,
             etat: taskStatus,
-            date_realisation: new Date(taskDate),
-            projet_id: projectId,
-            utilisateurs: selectedUsers,
-            attachments: allAttachments.length > 0 ? allAttachments : undefined
+            date_realisation: new Date(taskDate)
           });
+
+          await SupabaseService.assignUsersToTask(
+            task.id,
+            selectedUsers.map(u => u.id)
+          );
+
           onClose();
         }
       } catch (error) {
