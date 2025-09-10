@@ -96,6 +96,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     isMember 
   } = useProjectMembers(project.id);
 
+  // Debug logs pour les membres
+  console.log('ProjectDetail - project.id:', project.id);
+  console.log('ProjectDetail - projectMembers:', projectMembers);
+  console.log('ProjectDetail - membersLoading:', membersLoading);
+  console.log('ProjectDetail - getMemberCount():', getMemberCount());
+
   // Check if project has budget defined
   const hasBudget = project.budget_initial && project.devise;
 

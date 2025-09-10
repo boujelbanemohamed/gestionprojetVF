@@ -8,7 +8,10 @@ export function useProjectMembers(projetId: string) {
   const [error, setError] = useState<string | null>(null);
 
   const loadMembers = async () => {
+    console.log('useProjectMembers - loadMembers called with projetId:', projetId);
+    
     if (!projetId) {
+      console.log('useProjectMembers - No projetId, setting empty members');
       setMembers([]);
       setLoading(false);
       return;
@@ -17,10 +20,12 @@ export function useProjectMembers(projetId: string) {
     try {
       setLoading(true);
       setError(null);
+      console.log('useProjectMembers - Calling SupabaseService.getProjectMembers...');
       const projectMembers = await SupabaseService.getProjectMembers(projetId);
+      console.log('useProjectMembers - Received projectMembers:', projectMembers);
       setMembers(projectMembers);
     } catch (err) {
-      console.error('Erreur lors du chargement des membres:', err);
+      console.error('useProjectMembers - Erreur lors du chargement des membres:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
       setMembers([]);
     } finally {

@@ -576,6 +576,8 @@ export class SupabaseService {
 
   // Get project members
   static async getProjectMembers(projetId: string): Promise<ProjetMembre[]> {
+    console.log('SupabaseService.getProjectMembers - Called with projetId:', projetId);
+    
     const { data, error } = await supabase
       .from('projet_membres')
       .select(`
@@ -584,6 +586,9 @@ export class SupabaseService {
       `)
       .eq('projet_id', projetId)
       .order('created_at', { ascending: true });
+
+    console.log('SupabaseService.getProjectMembers - Raw data:', data);
+    console.log('SupabaseService.getProjectMembers - Error:', error);
 
     if (error) {
       // Si la table n'existe pas encore, retourner un tableau vide
@@ -594,7 +599,7 @@ export class SupabaseService {
       throw error;
     }
 
-    return data.map(member => ({
+    const mappedMembers = data.map(member => ({
       id: member.id,
       projet_id: member.projet_id,
       user_id: member.user_id,
@@ -612,6 +617,9 @@ export class SupabaseService {
         created_at: new Date(member.user.created_at)
       } : undefined
     }));
+    
+    console.log('SupabaseService.getProjectMembers - Mapped members:', mappedMembers);
+    return mappedMembers;
   }
 
   // Add member to project
