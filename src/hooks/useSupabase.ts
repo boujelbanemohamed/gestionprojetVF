@@ -230,10 +230,14 @@ export function useProjects() {
 
   const updateProject = async (id: string, projectData: any) => {
     try {
+      console.log('useProjects.updateProject called with ID:', id, 'data:', projectData);
       const updatedProject = await SupabaseService.updateProject(id, projectData);
+      console.log('SupabaseService.updateProject returned:', updatedProject);
       setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
+      console.log('Projects updated in state');
       return updatedProject;
     } catch (err) {
+      console.error('Error in useProjects.updateProject:', err);
       throw err;
     }
   };

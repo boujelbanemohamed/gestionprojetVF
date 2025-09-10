@@ -330,18 +330,28 @@ export class SupabaseService {
   }
 
   static async updateProject(id: string, projectData: any): Promise<Project> {
+    console.log('SupabaseService.updateProject called with ID:', id, 'data:', projectData);
+    
+    const updateData = {
+      ...projectData,
+      date_debut: projectData.date_debut?.toISOString().split('T')[0],
+      date_fin: projectData.date_fin?.toISOString().split('T')[0]
+    };
+    console.log('Update data prepared:', updateData);
+    
     const { data, error } = await supabase
       .from('projets')
-      .update({
-        ...projectData,
-        date_debut: projectData.date_debut?.toISOString().split('T')[0],
-        date_fin: projectData.date_fin?.toISOString().split('T')[0]
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error updating project:', error);
+      throw error;
+    }
+    
+    console.log('Project updated in Supabase:', data);
 
     return {
       id: data.id,

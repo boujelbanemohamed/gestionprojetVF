@@ -450,6 +450,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   };
 
   const handleUpdateProject = (projectData: { nom: string; description?: string; departement?: string; attachments?: ProjectAttachment[] }) => {
+    console.log('ProjectDetail.handleUpdateProject called with:', projectData);
+    console.log('Current project:', project);
+    
     const updatedProject = {
       ...project,
       nom: projectData.nom,
@@ -466,6 +469,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       updated_at: new Date()
     };
 
+    console.log('Updated project to send:', updatedProject);
     onUpdateProject(updatedProject);
   };
 

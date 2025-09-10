@@ -182,8 +182,11 @@ function App() {
   };
 
   const handleUpdateProject = async (updatedProject: Project) => {
+    console.log('handleUpdateProject called with:', updatedProject);
     try {
+      console.log('Calling updateProject with ID:', updatedProject.id);
       await updateProject(updatedProject.id, updatedProject);
+      console.log('Project updated successfully');
       NotificationService.success('Projet mis à jour', 'Les modifications ont été sauvegardées');
     } catch (error) {
       console.error('Error updating project:', error);
