@@ -122,6 +122,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           created_at: new Date(u.created_at)
         }));
       
+      console.log('Membres du projet chargés:', members);
       setProjectMembersFromDB(members);
     } catch (e) {
       console.error('Erreur chargement membres du projet:', e);

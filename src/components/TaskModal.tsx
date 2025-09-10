@@ -13,6 +13,7 @@ interface TaskModalProps {
 }
 
 const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, projectId, availableUsers, projectMembers = [] }) => {
+  console.log('TaskModal props:', { projectMembers: projectMembers.length, availableUsers: availableUsers.length });
   const [taskName, setTaskName] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [scenarioExecution, setScenarioExecution] = useState('');
@@ -117,11 +118,15 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
   };
 
   const toggleUser = (user: UserType) => {
-    setSelectedUsers(prev => 
-      prev.find(u => u.id === user.id)
+    console.log('Toggle user:', user);
+    setSelectedUsers(prev => {
+      const isSelected = prev.find(u => u.id === user.id);
+      const newSelection = isSelected
         ? prev.filter(u => u.id !== user.id)
-        : [...prev, user]
-    );
+        : [...prev, user];
+      console.log('New selection:', newSelection);
+      return newSelection;
+    });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -554,9 +559,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
                 </div>
               ) : (
                 // Seuls les membres du projet peuvent être assignés aux tâches
-                projectMembers.filter(user => 
-                  !selectedUsers.some(selected => selected.id === user.id)
-                ).map(user => (
+                (() => {
+                  const availableMembers = projectMembers.filter(user => 
+                    !selectedUsers.some(selected => selected.id === user.id)
+                  );
+                  console.log('Membres disponibles pour assignation:', availableMembers);
+                  return availableMembers;
+                })().map(user => (
                   <label key={user.id} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors border border-green-200 bg-green-50 hover:border-gray-200">
                     <input
                       type="checkbox"
