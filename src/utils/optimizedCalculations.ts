@@ -43,7 +43,7 @@ export const filterProjectsByUserOptimized = memoize((
   }
   
   return projects.filter(project => 
-    project.taches.some(task => 
+    (project.taches || []).some(task => 
       task.utilisateurs.some(user => user.id === userId)
     )
   );
@@ -62,13 +62,13 @@ export const calculateMemberPerformanceOptimized = memoize((
   assignedProjects: number;
 } => {
   const userTasks = projects.flatMap(project => 
-    project.taches.filter(task => 
+    (project.taches || []).filter(task => 
       task.utilisateurs.some(u => u.id === userId)
     )
   );
 
   const assignedProjects = projects.filter(project => 
-    project.taches.some(task => 
+    (project.taches || []).some(task => 
       task.utilisateurs.some(u => u.id === userId)
     )
   ).length;
@@ -101,7 +101,7 @@ export const searchProjectsOptimized = memoize((
     project.nom.toLowerCase().includes(term) ||
     (project.description && project.description.toLowerCase().includes(term)) ||
     (project.departement && project.departement.toLowerCase().includes(term)) ||
-    project.taches.some(task => 
+    (project.taches || []).some(task => 
       task.nom.toLowerCase().includes(term) ||
       (task.description && task.description.toLowerCase().includes(term))
     )
@@ -124,11 +124,11 @@ export const calculateDepartmentStatsOptimized = memoize((
   const departmentProjects = projects.filter(p => p.departement === departmentName);
   
   const totalTasks = departmentProjects.reduce((sum, project) => 
-    sum + project.taches.length, 0
+    sum + (project.taches || []).length, 0
   );
   
   const completedTasks = departmentProjects.reduce((sum, project) => 
-    sum + project.taches.filter(task => task.etat === 'cloturee').length, 0
+    sum + (project.taches || []).filter(task => task.etat === 'cloturee').length, 0
   );
 
   return {

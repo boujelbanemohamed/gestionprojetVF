@@ -141,7 +141,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   const isApproachingDeadline = project.date_fin ? isProjectApproachingDeadline(project.date_fin, DEFAULT_ALERT_THRESHOLD) : false;
   const isOverdue = project.date_fin ? isProjectOverdue(project.date_fin) : false;
   const daysUntilDeadline = project.date_fin ? getDaysUntilDeadline(project.date_fin) : null;
-  const showDeadlineAlert = (isApproachingDeadline || isOverdue) && project.taches.some(t => t.etat !== 'cloturee');
+  const showDeadlineAlert = (isApproachingDeadline || isOverdue) && (project.taches || []).some(t => t.etat !== 'cloturee');
   const alertMessage = daysUntilDeadline !== null ? getAlertMessage(daysUntilDeadline) : '';
   const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info';
   const alertColorClasses = getAlertColorClasses(alertSeverity);
@@ -150,7 +150,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   
   // Get project manager
   const projectManager = project.responsable_id 
-    ? project.taches.flatMap(t => t.utilisateurs).find(user => user.id === project.responsable_id)
+    ? (project.taches || []).flatMap(t => t.utilisateurs || []).find(user => user.id === project.responsable_id)
     : null;
 
   return (

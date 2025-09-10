@@ -164,7 +164,7 @@ export class PermissionService {
     
     // Regular users can only see projects they're assigned to
     return allProjects.filter(project => 
-      project.taches.some((task: any) => 
+      (project.taches || []).some((task: any) => 
         task.utilisateurs.some((taskUser: any) => taskUser.id === user.id)
       ) || project.responsable_id === user.id
     );
@@ -200,7 +200,7 @@ export function checkCanCloseProject(project: any, currentUser: any): boolean {
   }
   
   // Check if all tasks are completed
-  const allTasksCompleted = project.taches.every((task: any) => task.etat === 'cloturee');
+  const allTasksCompleted = (project.taches || []).every((task: any) => task.etat === 'cloturee');
   
   return allTasksCompleted;
 }
