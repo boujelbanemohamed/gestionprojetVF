@@ -32,7 +32,7 @@ export const exportProjectToPdf = (project: Project): void => {
   
   // Get project manager
   const projectManager = project.responsable_id 
-    ? (project.taches || []).flatMap(t => t.utilisateurs || []).find(user => user.id === project.responsable_id)
+    ? project.taches.flatMap(t => t.utilisateurs).find(user => user.id === project.responsable_id)
     : null;
   
   // Date de début & Date de fin

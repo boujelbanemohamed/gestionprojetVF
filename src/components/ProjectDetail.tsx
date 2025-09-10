@@ -4,7 +4,6 @@ import { Project, Task, User as UserType, Comment, Department, ProjectAttachment
 import { supabase } from '../services/supabase';
 import { getProjectStats } from '../utils/calculations';
 import { calculateBudgetSummary } from '../utils/budgetCalculations';
-import { MemberController, ProjectMember } from '../services/memberController';
 import { exportProjectToExcel } from '../utils/export';
 import { exportProjectToPdf } from '../utils/pdfExport';
 import TaskCard from './TaskCard';
@@ -92,10 +91,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // State for real expenses
   const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
-  
-  // State for project members
-  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
-  const [membersLoading, setMembersLoading] = useState(true);
 
   // Load real expenses from Supabase
   const loadExpenses = async () => {
@@ -147,23 +142,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
-  // Load project members
-  const loadProjectMembers = async () => {
-    try {
-      setMembersLoading(true);
-      const members = await MemberController.getProjectMembers(project.id);
-      setProjectMembers(members);
-    } catch (error) {
-      console.error('Erreur lors du chargement des membres:', error);
-      setProjectMembers([]);
-    } finally {
-      setMembersLoading(false);
-    }
-  };
-
   useEffect(() => {
     loadExpenses();
-    loadProjectMembers();
   }, [project.id, hasBudget]);
 
   // State for budget summary
@@ -187,13 +167,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   }, [project.budget_initial, project.devise, projectExpenses]);
 
-  const stats = getProjectStats(project.taches || []);
+  const stats = getProjectStats(project.taches);
 
-  // Get unique members from all tasks (legacy - now using projectMembers state)
-  const taskMembers = Array.from(
+  // Get unique members from all tasks
+  const projectMembers = Array.from(
     new Map(
-      (project.taches || [])
-        .flatMap(task => task.utilisateurs || [])
+      project.taches
+        .flatMap(task => task.utilisateurs)
         .map(user => [user.id, user])
     ).values()
   );
@@ -201,8 +181,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // Calculate total attachments count (project + all tasks + all comments)
   const getTotalAttachmentsCount = () => {
     const projectAttachments = project.attachments?.length || 0;
-    const taskAttachments = (project.taches || []).reduce((sum, task) => sum + (task.attachments?.length || 0), 0);
-    const commentAttachments = (project.taches || []).reduce((sum, task) => 
+    const taskAttachments = project.taches.reduce((sum, task) => sum + (task.attachments?.length || 0), 0);
+    const commentAttachments = project.taches.reduce((sum, task) => 
       sum + (task.commentaires?.reduce((commentSum, comment) => 
         commentSum + (comment.attachments?.length || 0), 0) || 0), 0);
     
@@ -234,7 +214,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
-  const filteredTasks = (project.taches || []).filter(task => {
+  const filteredTasks = project.taches.filter(task => {
     const matchesStatus = filterStatus === 'all' || task.etat === filterStatus;
     const matchesMember = filterMember === 'all' || task.utilisateurs.some(user => user.id === filterMember);
     return matchesStatus && matchesMember;
@@ -292,21 +272,26 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
-  const handleCreateTask = async (taskData: Omit<Task, 'id'>) => {
-    try {
-      // La tâche est déjà créée en base de données via TaskModal
-      // On recharge les projets pour avoir les données à jour
-      console.log('Tâche créée avec succès, rechargement des données...');
-      
-      // Recharger les projets depuis la base de données
-      if (onUpdateProject) {
-        // On peut déclencher un rechargement via le parent
-        // ou simplement attendre que les données se synchronisent
-        console.log('Données synchronisées');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la création de la tâche:', error);
-    }
+  const handleCreateTask = (taskData: Omit<Task, 'id'>) => {
+    const currentUser = getCurrentUser();
+    const newTask: Task = {
+      ...taskData,
+      id: Date.now().toString(),
+      commentaires: [],
+      history: []
+    };
+
+    // Add creation history
+    const creationHistory = addTaskCreatedHistory(newTask, currentUser);
+    newTask.history = [creationHistory];
+
+    const updatedProject = {
+      ...project,
+      taches: [...project.taches, newTask],
+      updated_at: new Date()
+    };
+
+    onUpdateProject(updatedProject);
   };
 
   const handleUpdateTask = (taskData: Omit<Task, 'id'>) => {
@@ -359,14 +344,27 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       newHistory.push(addTaskUpdatedHistory(oldTask, currentUser, changes));
     }
 
-    // La tâche est mise à jour en base de données via TaskModal
-    // On ne met pas à jour le projet localement pour éviter l'erreur
-    console.log('Tâche mise à jour avec succès');
+    const updatedTasks = project.taches.map(task =>
+      task.id === editingTask.id ? { 
+        ...taskData, 
+        id: editingTask.id, 
+        commentaires: editingTask.commentaires || [],
+        history: newHistory
+      } : task
+    );
+
+    const updatedProject = {
+      ...project,
+      taches: updatedTasks,
+      updated_at: new Date()
+    };
+
+    onUpdateProject(updatedProject);
     setEditingTask(undefined);
   };
 
   const handleDeleteTask = (taskId: string) => {
-    const taskToDelete = (project.taches || []).find(t => t.id === taskId);
+    const taskToDelete = project.taches.find(t => t.id === taskId);
     if (!taskToDelete) return;
 
     const commentsCount = taskToDelete.commentaires?.length || 0;
@@ -410,9 +408,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         });
       }
 
-      // La tâche est supprimée en base de données
-      // On ne met pas à jour le projet localement pour éviter l'erreur
-      console.log('Tâche supprimée avec succès');
+      const updatedTasks = project.taches.filter(task => task.id !== taskId);
+      const updatedProject = {
+        ...project,
+        taches: updatedTasks,
+        updated_at: new Date()
+      };
+
+      onUpdateProject(updatedProject);
 
       // Close any open modals related to this task
       if (selectedTaskForComments && selectedTaskForComments.id === taskId) {
@@ -458,7 +461,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       created_at: new Date()
     };
 
-    const updatedTasks = (project.taches || []).map(task => {
+    const updatedTasks = project.taches.map(task => {
       if (task.id === taskId) {
         const updatedTask = {
           ...task,
@@ -490,7 +493,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const handleDeleteComment = (taskId: string, commentId: string) => {
     const currentUser = getCurrentUser();
     
-    const updatedTasks = (project.taches || []).map(task => {
+    const updatedTasks = project.taches.map(task => {
       if (task.id === taskId) {
         const commentToDelete = (task.commentaires || []).find(c => c.id === commentId);
         const updatedTask = {
@@ -550,7 +553,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Handle task update from details modal (for attachment deletion)
   const handleUpdateTaskFromDetails = (updatedTask: Task) => {
-    const updatedTasks = (project.taches || []).map(task =>
+    const updatedTasks = project.taches.map(task =>
       task.id === updatedTask.id ? updatedTask : task
     );
 
@@ -601,7 +604,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const isApproachingDeadline = project.date_fin ? isProjectApproachingDeadline(project.date_fin, alertThreshold) : false;
   const isOverdue = project.date_fin ? isProjectOverdue(project.date_fin) : false;
   const daysUntilDeadline = project.date_fin ? getDaysUntilDeadline(project.date_fin) : null;
-  const showDeadlineAlert = (isApproachingDeadline || isOverdue) && (project.taches || []).some(t => t.etat !== 'cloturee');
+  const showDeadlineAlert = (isApproachingDeadline || isOverdue) && project.taches.some(t => t.etat !== 'cloturee');
   const alertMessage = daysUntilDeadline !== null ? getAlertMessage(daysUntilDeadline) : '';
   const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info';
   const alertColorClasses = getAlertColorClasses(alertSeverity);
@@ -647,8 +650,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               </div>
               <div className="mt-2">
                 <p className="text-gray-600">
-                  {(project.taches || []).length} tâche{(project.taches || []).length > 1 ? 's' : ''} • 
-                  {new Set((project.taches || []).flatMap(t => (t.utilisateurs || []).map(u => u.id))).size} membre{new Set((project.taches || []).flatMap(t => (t.utilisateurs || []).map(u => u.id))).size > 1 ? 's' : ''}
+                  {project.taches.length} tâche{project.taches.length > 1 ? 's' : ''} • 
+                  {new Set(project.taches.flatMap(t => t.utilisateurs.map(u => u.id))).size} membre{new Set(project.taches.flatMap(t => t.utilisateurs.map(u => u.id))).size > 1 ? 's' : ''}
                 </p>
               </div>
             </div>
@@ -715,26 +718,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               >
                 <FileText size={18} />
                 <span>PV de Réunion {getProjectPVCount() > 0 && `(${getProjectPVCount()})`}</span>
-              </button>
-              <button
-                onClick={() => setIsProjectEditModalOpen(true)}
-                disabled={project.statut === 'cloture'}
-                className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
-                  project.statut === 'cloture'
-                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                    : 'text-white bg-blue-600 border border-blue-600 hover:bg-blue-700'
-                }`}
-                title={project.statut === 'cloture' ? 'Impossible de modifier un projet clôturé' : 'Modifier le projet'}
-              >
-                <Edit2 size={18} />
-                <span>Modifier le projet</span>
-              </button>
-              <button
-                onClick={() => setIsMembersModalOpen(true)}
-                className="px-4 py-2 text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-              >
-                <Users size={18} />
-                <span>Gérer les membres ({projectMembers.length})</span>
               </button>
               <button
                 onClick={() => setIsProjectInfoModalOpen(true)}
@@ -837,10 +820,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           <div className="p-6 border-b">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                Tâches ({viewMode === 'list' ? filteredTasks.length : (project.taches || []).length})
+                Tâches ({viewMode === 'list' ? filteredTasks.length : project.taches.length})
                 {hasActiveFilters && viewMode === 'list' && (
                   <span className="text-sm font-normal text-gray-500 ml-2">
-                    sur {(project.taches || []).length} au total
+                    sur {project.taches.length} au total
                   </span>
                 )}
               </h3>
@@ -978,7 +961,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               </div>
             )}
             
-            {(project.taches || []).length === 0 ? (
+            {project.taches.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">Aucune tâche</h4>
@@ -1064,7 +1047,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         task={editingTask}
         projectId={project.id}
         availableUsers={availableUsers}
-        projectMembers={projectMembers.map(member => member.users)}
       />
 
       {/* Project Edit Modal */}
@@ -1175,19 +1157,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       onManageMembers={() => {
         setIsProjectInfoModalOpen(false);
         setIsMembersManagementModalOpen(true);
-      }}
-    />
-
-    {/* Project Members Modal */}
-    <ProjectMembersModal
-      isOpen={isMembersModalOpen}
-      onClose={() => setIsMembersModalOpen(false)}
-      projectId={project.id}
-      projectName={project.nom}
-      availableUsers={availableUsers}
-      currentUser={currentUser}
-      onMembersUpdated={() => {
-        loadProjectMembers();
       }}
     />
     </div>

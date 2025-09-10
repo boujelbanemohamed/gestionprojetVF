@@ -6,7 +6,6 @@ import { exportProjectToExcel } from '../utils/export';
 import { isProjectApproachingDeadline, isProjectOverdue, getDaysUntilDeadline, getAlertMessage, getAlertSeverity, getAlertColorClasses, DEFAULT_ALERT_THRESHOLD } from '../utils/alertsConfig';
 import { calculateBudgetSummary, getBudgetStatusColor, formatCurrency, BudgetSummary } from '../utils/budgetCalculations';
 import { supabase } from '../services/supabase';
-import { MemberController } from '../services/memberController';
 
 interface ProjectExpense {
   id: string;
@@ -38,7 +37,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [expensesLoading, setExpensesLoading] = useState(false);
-  const [memberCount, setMemberCount] = useState<number>(0);
   const stats = getProjectStats(project.taches);
 
   // Check if project has budget
@@ -91,21 +89,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
     }
   };
 
-  // Load member count
-  const loadMemberCount = async () => {
-    try {
-      const count = await MemberController.getProjectMemberCount(project.id);
-      setMemberCount(count);
-    } catch (error) {
-      console.error('Erreur lors du chargement du nombre de membres:', error);
-      setMemberCount(0);
-    }
-  };
-
   // Load expenses when component mounts or project changes
   useEffect(() => {
     loadExpenses();
-    loadMemberCount();
   }, [project.id, hasBudget]);
 
   // Calculate budget summary when expenses change
@@ -141,7 +127,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   const isApproachingDeadline = project.date_fin ? isProjectApproachingDeadline(project.date_fin, DEFAULT_ALERT_THRESHOLD) : false;
   const isOverdue = project.date_fin ? isProjectOverdue(project.date_fin) : false;
   const daysUntilDeadline = project.date_fin ? getDaysUntilDeadline(project.date_fin) : null;
-  const showDeadlineAlert = (isApproachingDeadline || isOverdue) && (project.taches || []).some(t => t.etat !== 'cloturee');
+  const showDeadlineAlert = (isApproachingDeadline || isOverdue) && project.taches.some(t => t.etat !== 'cloturee');
   const alertMessage = daysUntilDeadline !== null ? getAlertMessage(daysUntilDeadline) : '';
   const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info';
   const alertColorClasses = getAlertColorClasses(alertSeverity);
@@ -150,7 +136,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   
   // Get project manager
   const projectManager = project.responsable_id 
-    ? (project.taches || []).flatMap(t => t.utilisateurs || []).find(user => user.id === project.responsable_id)
+    ? project.taches.flatMap(t => t.utilisateurs).find(user => user.id === project.responsable_id)
     : null;
 
   return (
@@ -336,7 +322,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
           <div className="flex items-center space-x-2">
             <Users size={16} className="text-gray-400" />
             <span className="text-gray-600">
-              {memberCount} membre{memberCount > 1 ? 's' : ''} du projet
+              {new Set(project.taches.flatMap(t => t.utilisateurs.map(u => u.id))).size} membres
             </span>
           </div>
         </div>

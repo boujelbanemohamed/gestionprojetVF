@@ -1,6 +1,5 @@
 import { supabase } from './supabase';
 import { AuthUser, User, Department, Project, Task, Comment } from '../types';
-import { MemberController } from './memberController';
 
 export class SupabaseService {
   // Authentication
@@ -321,10 +320,13 @@ export class SupabaseService {
   }
 
   static async updateProject(id: string, projectData: any): Promise<Project> {
+    // Exclure les tâches car elles sont dans une table séparée
+    const { taches, ...projectDataWithoutTaches } = projectData;
+    
     const { data, error } = await supabase
       .from('projets')
       .update({
-        ...projectData,
+        ...projectDataWithoutTaches,
         date_debut: projectData.date_debut?.toISOString().split('T')[0],
         date_fin: projectData.date_fin?.toISOString().split('T')[0]
       })

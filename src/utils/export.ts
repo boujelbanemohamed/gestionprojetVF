@@ -9,14 +9,14 @@ export const exportProjectToExcel = (project: Project): void => {
     ['Nom du Projet', project.nom],
     ['Description', project.description || 'Aucune description'],
     ['Département', project.departement || 'Non assigné'],
-    ['Pourcentage d\'avancement', `${Math.round(((project.taches || []).filter(t => t.etat === 'cloturee').length / (project.taches || []).length) * 100) || 0}%`],
-    ['Nombre total de tâches', (project.taches || []).length],
+    ['Pourcentage d\'avancement', `${Math.round((project.taches.filter(t => t.etat === 'cloturee').length / project.taches.length) * 100) || 0}%`],
+    ['Nombre total de tâches', project.taches.length],
     ['Date de création', project.created_at.toLocaleDateString('fr-FR')],
     [],
     // Tasks header
     ['Nom de la tâche', 'Description', 'Scénario d\'exécution', 'Critères d\'acceptation', 'État', 'Personne(s) assignée(s)', 'Fonction(s)', 'Département(s)', 'Date de réalisation', 'Commentaires'],
     // Tasks data
-    ...(project.taches || []).map(task => [
+    ...project.taches.map(task => [
       task.nom,
       task.description || 'Aucune description',
       task.scenario_execution || 'Aucun scénario défini',

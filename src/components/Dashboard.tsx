@@ -98,9 +98,9 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     });
 
-  const totalTasks = projects.reduce((sum, project) => sum + (project.taches || []).length, 0);
+  const totalTasks = projects.reduce((sum, project) => sum + project.taches.length, 0);
   const completedTasks = projects.reduce((sum, project) => 
-    sum + (project.taches || []).filter(task => task.etat === 'cloturee').length, 0
+    sum + project.taches.filter(task => task.etat === 'cloturee').length, 0
   );
   
   // Count projects approaching deadline or overdue
@@ -108,19 +108,19 @@ const Dashboard: React.FC<DashboardProps> = ({
     p.date_fin && 
     isProjectApproachingDeadline(p.date_fin, alertThreshold) && 
     !isProjectOverdue(p.date_fin) &&
-    (p.taches || []).some(t => t.etat !== 'cloturee')
+    p.taches.some(t => t.etat !== 'cloturee')
   ).length;
   
   const overdueCount = projects.filter(p => 
     p.date_fin && 
     isProjectOverdue(p.date_fin) &&
-    (p.taches || []).some(t => t.etat !== 'cloturee')
+    p.taches.some(t => t.etat !== 'cloturee')
   ).length;
   
   const avgProgress = projects.length > 0 
     ? Math.round(projects.reduce((sum, project) => {
-        const projectProgress = (project.taches || []).length > 0 
-          ? ((project.taches || []).filter(t => t.etat === 'cloturee').length / (project.taches || []).length) * 100 
+        const projectProgress = project.taches.length > 0 
+          ? (project.taches.filter(t => t.etat === 'cloturee').length / project.taches.length) * 100 
           : 0;
         return sum + projectProgress;
       }, 0) / projects.length)

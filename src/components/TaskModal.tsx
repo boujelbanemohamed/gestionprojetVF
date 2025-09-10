@@ -9,10 +9,9 @@ interface TaskModalProps {
   task?: Task;
   projectId: string;
   availableUsers: UserType[];
-  projectMembers: UserType[]; // Membres du projet pour assignation
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, projectId, availableUsers, projectMembers }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, projectId, availableUsers }) => {
   const [taskName, setTaskName] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [scenarioExecution, setScenarioExecution] = useState('');
@@ -90,25 +89,20 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             date_realisation: new Date(taskDate),
             projet_id: projectId
           });
-          
-          // Pour une nouvelle tâche, on ne fait que fermer le modal
-          // Les données seront rechargées automatiquement
-          onClose();
-        } else {
-          // Pour une tâche existante, on appelle onSubmit pour la mise à jour locale
-          onSubmit({
-            nom: taskName.trim(),
-            description: taskDescription.trim() || undefined,
-            scenario_execution: scenarioExecution.trim() || undefined,
-            criteres_acceptation: criteresAcceptation.trim() || undefined,
-            etat: taskStatus,
-            date_realisation: new Date(taskDate),
-            projet_id: projectId,
-            utilisateurs: selectedUsers,
-            attachments: allAttachments.length > 0 ? allAttachments : undefined
-          });
-          onClose();
         }
+
+        onSubmit({
+          nom: taskName.trim(),
+          description: taskDescription.trim() || undefined,
+          scenario_execution: scenarioExecution.trim() || undefined,
+          criteres_acceptation: criteresAcceptation.trim() || undefined,
+          etat: taskStatus,
+          date_realisation: new Date(taskDate),
+          projet_id: projectId,
+          utilisateurs: selectedUsers,
+          attachments: allAttachments.length > 0 ? allAttachments : undefined
+        });
+        onClose();
       } catch (error) {
         console.error('Erreur lors de la sauvegarde de la tâche:', error);
         alert('Erreur lors de la sauvegarde de la tâche');
@@ -521,15 +515,15 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
               <span>Personnes assignées ({selectedUsers.length} sélectionnée{selectedUsers.length > 1 ? 's' : ''})</span>
             </h3>
             
-              <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-white">
-                {projectMembers.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <User className="mx-auto mb-2" size={32} />
-                    <p>Aucun membre du projet</p>
-                    <p className="text-sm">Ajoutez d'abord des membres au projet dans la gestion des membres</p>
-                  </div>
-                ) : (
-                  projectMembers.map(user => (
+            <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-white">
+              {availableUsers.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <User className="mx-auto mb-2" size={32} />
+                  <p>Aucun membre disponible</p>
+                  <p className="text-sm">Créez d'abord des membres dans la gestion des membres</p>
+                </div>
+              ) : (
+                availableUsers.map(user => (
                   <label key={user.id} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors border border-transparent hover:border-gray-200">
                     <input
                       type="checkbox"
@@ -561,12 +555,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
                 ))
               )}
             </div>
-              {selectedUsers.length === 0 && projectMembers.length > 0 && (
-                <p className="text-sm text-red-600 mt-2">Veuillez sélectionner au moins une personne</p>
-              )}
-              {projectMembers.length === 0 && (
-                <p className="text-sm text-orange-600 mt-2">⚠️ Aucun membre du projet. Ajoutez d'abord des membres au projet pour pouvoir les assigner aux tâches.</p>
-              )}
+            {selectedUsers.length === 0 && availableUsers.length > 0 && (
+              <p className="text-sm text-red-600 mt-2">Veuillez sélectionner au moins une personne</p>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -580,7 +571,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             </button>
             <button
               type="submit"
-                disabled={!taskName.trim() || !taskDate || selectedUsers.length === 0 || projectMembers.length === 0}
+              disabled={!taskName.trim() || !taskDate || selectedUsers.length === 0 || availableUsers.length === 0}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center space-x-2"
             >
               {task ? <Save size={18} /> : <Plus size={18} />}
