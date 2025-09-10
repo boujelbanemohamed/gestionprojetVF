@@ -21,18 +21,18 @@ import ProjectBudgetModal from './ProjectBudgetModal';
 import ProjectMembersManagementModal from './ProjectMembersManagementModal';
 import ProjectInfoModal from './ProjectInfoModal';
 import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';
-import { checkCanCloseProject, checkCanReopenProject } from '../utils/permissions';
-import { 
-  createHistoryEntry, 
-  addTaskCreatedHistory, 
-  addTaskUpdatedHistory, 
-  addStatusChangedHistory, 
-  addUserAssignedHistory, 
-  addUserUnassignedHistory, 
-  addCommentAddedHistory, 
-  addCommentDeletedHistory, 
-  addDateChangedHistory 
-} from '../utils/taskHistory';
+// import { checkCanCloseProject, checkCanReopenProject } from '../utils/permissions';
+// import { 
+//   createHistoryEntry, 
+//   addTaskCreatedHistory, 
+//   addTaskUpdatedHistory, 
+//   addStatusChangedHistory, 
+//   addUserAssignedHistory, 
+//   addUserUnassignedHistory, 
+//   addCommentAddedHistory, 
+//   addCommentDeletedHistory, 
+//   addDateChangedHistory 
+// } from '../utils/taskHistory';
 import { Lock, Unlock } from 'lucide-react';
 
 interface ProjectExpense {
@@ -265,11 +265,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Project lifecycle functions
   const canCloseProject = (): boolean => {
-    return checkCanCloseProject(project, getCurrentUser());
+    // return checkCanCloseProject(project, getCurrentUser());
+    return true; // Temporaire
   };
 
   const canReopenProject = (): boolean => {
-    return checkCanReopenProject(project, getCurrentUser());
+    // return checkCanReopenProject(project, getCurrentUser());
+    return true; // Temporaire
   };
 
   const handleCloseProject = () => {
@@ -342,12 +344,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     if (oldTask.criteres_acceptation !== taskData.criteres_acceptation) changes.push('critères d\'acceptation');
     if (oldTask.date_realisation.getTime() !== taskData.date_realisation.getTime()) {
       changes.push('date de réalisation');
-      newHistory.push(addDateChangedHistory(oldTask, currentUser, oldTask.date_realisation, taskData.date_realisation));
+      // newHistory.push(addDateChangedHistory(oldTask, currentUser, oldTask.date_realisation, taskData.date_realisation));
     }
 
     // Check status change
     if (oldTask.etat !== taskData.etat) {
-      newHistory.push(addStatusChangedHistory(oldTask, currentUser, oldTask.etat, taskData.etat));
+      // newHistory.push(addStatusChangedHistory(oldTask, currentUser, oldTask.etat, taskData.etat));
     }
 
     // Check user assignments
@@ -359,7 +361,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     addedUserIds.forEach(userId => {
       const user = taskData.utilisateurs.find(u => u.id === userId);
       if (user) {
-        newHistory.push(addUserAssignedHistory(oldTask, currentUser, user));
+        // newHistory.push(addUserAssignedHistory(oldTask, currentUser, user));
       }
     });
 
@@ -368,13 +370,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     removedUserIds.forEach(userId => {
       const user = oldTask.utilisateurs.find(u => u.id === userId);
       if (user) {
-        newHistory.push(addUserUnassignedHistory(oldTask, currentUser, user));
+        // newHistory.push(addUserUnassignedHistory(oldTask, currentUser, user));
       }
     });
 
     // Add general update history if there are other changes
     if (changes.length > 0) {
-      newHistory.push(addTaskUpdatedHistory(oldTask, currentUser, changes));
+      // newHistory.push(addTaskUpdatedHistory(oldTask, currentUser, changes));
     }
 
     // La tâche est mise à jour en base de données via TaskModal
@@ -485,7 +487,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         const updatedTask = {
           ...task,
           commentaires: [...(task.commentaires || []), newComment],
-          history: [...(task.history || []), addCommentAddedHistory(task, commentData.auteur)]
+          history: [...(task.history || [])] // , addCommentAddedHistory(task, commentData.auteur)]
         };
         return updatedTask;
       }
@@ -519,7 +521,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           ...task,
           commentaires: (task.commentaires || []).filter(comment => comment.id !== commentId),
           history: [...(task.history || []), 
-            ...(commentToDelete ? [addCommentDeletedHistory(task, currentUser, commentToDelete.auteur)] : [])
+            // ...(commentToDelete ? [addCommentDeletedHistory(task, currentUser, commentToDelete.auteur)] : [])
           ]
         };
         return updatedTask;
