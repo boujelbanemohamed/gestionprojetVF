@@ -3,7 +3,8 @@ import { ArrowLeft, Plus, Download, BarChart3, Calendar, Users, Building, FileTe
 import { Project, Task, User as UserType, Comment, Department, ProjectAttachment, ProjectExpense, BudgetSummary } from '../types';
 import { supabase } from '../services/supabase';
 import { getProjectStats } from '../utils/calculations';
-import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor } from '../utils/budgetCalculations';
+import { calculateBudgetSummary } from '../utils/budgetCalculations';
+import { MemberController, ProjectMember } from '../services/memberController';
 import { exportProjectToExcel } from '../utils/export';
 import { exportProjectToPdf } from '../utils/pdfExport';
 import TaskCard from './TaskCard';
@@ -18,21 +19,22 @@ import GanttChart from './GanttChart';
 import { isProjectApproachingDeadline, isProjectOverdue, getDaysUntilDeadline, getAlertMessage, getAlertSeverity, getAlertColorClasses, DEFAULT_ALERT_THRESHOLD } from '../utils/alertsConfig';
 import ProjectAlertSettingsModal from './ProjectAlertSettingsModal';
 import ProjectBudgetModal from './ProjectBudgetModal';
+import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor } from '../utils/budgetCalculations';
 import ProjectMembersManagementModal from './ProjectMembersManagementModal';
 import ProjectInfoModal from './ProjectInfoModal';
 import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';
-// import { checkCanCloseProject, checkCanReopenProject } from '../utils/permissions';
-// import { 
-//   createHistoryEntry, 
-//   addTaskCreatedHistory, 
-//   addTaskUpdatedHistory, 
-//   addStatusChangedHistory, 
-//   addUserAssignedHistory, 
-//   addUserUnassignedHistory, 
-//   addCommentAddedHistory, 
-//   addCommentDeletedHistory, 
-//   addDateChangedHistory 
-// } from '../utils/taskHistory';
+import { checkCanCloseProject, checkCanReopenProject } from '../utils/permissions';
+import { 
+  createHistoryEntry, 
+  addTaskCreatedHistory, 
+  addTaskUpdatedHistory, 
+  addStatusChangedHistory, 
+  addUserAssignedHistory, 
+  addUserUnassignedHistory, 
+  addCommentAddedHistory, 
+  addCommentDeletedHistory, 
+  addDateChangedHistory 
+} from '../utils/taskHistory';
 import { Lock, Unlock } from 'lucide-react';
 
 interface ProjectExpense {
@@ -62,10 +64,9 @@ interface ProjectDetailProps {
   departments: Department[];
   currentUser: AuthUser;
   meetingMinutes?: any[];
-  onRefresh?: () => void; // Callback pour recharger les données
 }
 
-const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdateProject, availableUsers, departments, currentUser, meetingMinutes = [], onRefresh }) => {
+const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdateProject, availableUsers, departments, currentUser, meetingMinutes = [] }) => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -91,43 +92,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // State for real expenses
   const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
-  const [projectMembersFromDB, setProjectMembersFromDB] = useState<UserType[]>([]);
-
-  // Load project members from projet_membres table
-  const loadProjectMembers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('projet_membres')
-        .select('users(*)')
-        .eq('projet_id', project.id);
-      
-      if (error) {
-        console.error('Erreur chargement membres du projet:', error);
-        setProjectMembersFromDB([]);
-        return;
-      }
-      
-      const members: UserType[] = (data || [])
-        .map((row: any) => row.users)
-        .filter(Boolean)
-        .map((u: any) => ({
-          id: u.id,
-          nom: u.nom,
-          prenom: u.prenom,
-          email: u.email,
-          fonction: u.fonction || undefined,
-          departement: u.departement,
-          role: u.role,
-          created_at: new Date(u.created_at)
-        }));
-      
-      console.log('Membres du projet chargés:', members);
-      setProjectMembersFromDB(members);
-    } catch (e) {
-      console.error('Erreur chargement membres du projet:', e);
-      setProjectMembersFromDB([]);
-    }
-  };
+  
+  // State for project members
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(true);
 
   // Load real expenses from Supabase
   const loadExpenses = async () => {
@@ -179,6 +147,20 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
+  // Load project members
+  const loadProjectMembers = async () => {
+    try {
+      setMembersLoading(true);
+      const members = await MemberController.getProjectMembers(project.id);
+      setProjectMembers(members);
+    } catch (error) {
+      console.error('Erreur lors du chargement des membres:', error);
+      setProjectMembers([]);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadExpenses();
     loadProjectMembers();
@@ -207,8 +189,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   const stats = getProjectStats(project.taches);
 
-  // Get unique members from all tasks
-  const projectMembers = Array.from(
+  // Get unique members from all tasks (legacy - now using projectMembers state)
+  const taskMembers = Array.from(
     new Map(
       project.taches
         .flatMap(task => task.utilisateurs)
@@ -265,13 +247,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Project lifecycle functions
   const canCloseProject = (): boolean => {
-    // return checkCanCloseProject(project, getCurrentUser());
-    return true; // Temporaire
+    return checkCanCloseProject(project, getCurrentUser());
   };
 
   const canReopenProject = (): boolean => {
-    // return checkCanReopenProject(project, getCurrentUser());
-    return true; // Temporaire
+    return checkCanReopenProject(project, getCurrentUser());
   };
 
   const handleCloseProject = () => {
@@ -344,12 +324,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     if (oldTask.criteres_acceptation !== taskData.criteres_acceptation) changes.push('critères d\'acceptation');
     if (oldTask.date_realisation.getTime() !== taskData.date_realisation.getTime()) {
       changes.push('date de réalisation');
-      // newHistory.push(addDateChangedHistory(oldTask, currentUser, oldTask.date_realisation, taskData.date_realisation));
+      newHistory.push(addDateChangedHistory(oldTask, currentUser, oldTask.date_realisation, taskData.date_realisation));
     }
 
     // Check status change
     if (oldTask.etat !== taskData.etat) {
-      // newHistory.push(addStatusChangedHistory(oldTask, currentUser, oldTask.etat, taskData.etat));
+      newHistory.push(addStatusChangedHistory(oldTask, currentUser, oldTask.etat, taskData.etat));
     }
 
     // Check user assignments
@@ -361,7 +341,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     addedUserIds.forEach(userId => {
       const user = taskData.utilisateurs.find(u => u.id === userId);
       if (user) {
-        // newHistory.push(addUserAssignedHistory(oldTask, currentUser, user));
+        newHistory.push(addUserAssignedHistory(oldTask, currentUser, user));
       }
     });
 
@@ -370,13 +350,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     removedUserIds.forEach(userId => {
       const user = oldTask.utilisateurs.find(u => u.id === userId);
       if (user) {
-        // newHistory.push(addUserUnassignedHistory(oldTask, currentUser, user));
+        newHistory.push(addUserUnassignedHistory(oldTask, currentUser, user));
       }
     });
 
     // Add general update history if there are other changes
     if (changes.length > 0) {
-      // newHistory.push(addTaskUpdatedHistory(oldTask, currentUser, changes));
+      newHistory.push(addTaskUpdatedHistory(oldTask, currentUser, changes));
     }
 
     // La tâche est mise à jour en base de données via TaskModal
@@ -451,9 +431,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   };
 
   const handleUpdateProject = (projectData: { nom: string; description?: string; departement?: string; attachments?: ProjectAttachment[] }) => {
-    console.log('ProjectDetail.handleUpdateProject called with:', projectData);
-    console.log('Current project:', project);
-    
     const updatedProject = {
       ...project,
       nom: projectData.nom,
@@ -470,7 +447,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       updated_at: new Date()
     };
 
-    console.log('Updated project to send:', updatedProject);
     onUpdateProject(updatedProject);
   };
 
@@ -487,7 +463,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         const updatedTask = {
           ...task,
           commentaires: [...(task.commentaires || []), newComment],
-          history: [...(task.history || [])] // , addCommentAddedHistory(task, commentData.auteur)]
+          history: [...(task.history || []), addCommentAddedHistory(task, commentData.auteur)]
         };
         return updatedTask;
       }
@@ -521,7 +497,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           ...task,
           commentaires: (task.commentaires || []).filter(comment => comment.id !== commentId),
           history: [...(task.history || []), 
-            // ...(commentToDelete ? [addCommentDeletedHistory(task, currentUser, commentToDelete.auteur)] : [])
+            ...(commentToDelete ? [addCommentDeletedHistory(task, currentUser, commentToDelete.auteur)] : [])
           ]
         };
         return updatedTask;
@@ -741,11 +717,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                 <span>PV de Réunion {getProjectPVCount() > 0 && `(${getProjectPVCount()})`}</span>
               </button>
               <button
-                onClick={() => setIsProjectEditModalOpen(true)}
-                className="px-4 py-2 text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                onClick={() => setIsMembersModalOpen(true)}
+                className="px-4 py-2 text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
               >
-                <Edit2 size={18} />
-                <span>Modifier le projet</span>
+                <Users size={18} />
+                <span>Gérer les membres ({projectMembers.length})</span>
               </button>
               <button
                 onClick={() => setIsProjectInfoModalOpen(true)}
@@ -1075,7 +1051,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         task={editingTask}
         projectId={project.id}
         availableUsers={availableUsers}
-        projectMembers={projectMembersFromDB}
+        projectMembers={projectMembers.map(member => member.users)}
       />
 
       {/* Project Edit Modal */}
@@ -1100,7 +1076,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         isOpen={isMembersModalOpen}
         onClose={() => setIsMembersModalOpen(false)}
         projectName={project.nom}
-        members={projectMembersFromDB}
+        members={projectMembers}
       />
 
       {/* Task Comments Modal */}
@@ -1171,13 +1147,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       project={project}
       availableUsers={availableUsers}
       onUpdateProject={onUpdateProject}
-      onRefresh={() => {
-        // Recharger les projets pour synchroniser les données
-        console.log('Rechargement des données...');
-        if (onRefresh) {
-          onRefresh();
-        }
-      }}
     />
 
     {/* Project Info Modal */}
@@ -1193,6 +1162,19 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       onManageMembers={() => {
         setIsProjectInfoModalOpen(false);
         setIsMembersManagementModalOpen(true);
+      }}
+    />
+
+    {/* Project Members Modal */}
+    <ProjectMembersModal
+      isOpen={isMembersModalOpen}
+      onClose={() => setIsMembersModalOpen(false)}
+      projectId={project.id}
+      projectName={project.nom}
+      availableUsers={availableUsers}
+      currentUser={currentUser}
+      onMembersUpdated={() => {
+        loadProjectMembers();
       }}
     />
     </div>

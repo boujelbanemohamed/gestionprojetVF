@@ -6,6 +6,7 @@ import { exportProjectToExcel } from '../utils/export';
 import { isProjectApproachingDeadline, isProjectOverdue, getDaysUntilDeadline, getAlertMessage, getAlertSeverity, getAlertColorClasses, DEFAULT_ALERT_THRESHOLD } from '../utils/alertsConfig';
 import { calculateBudgetSummary, getBudgetStatusColor, formatCurrency, BudgetSummary } from '../utils/budgetCalculations';
 import { supabase } from '../services/supabase';
+import { MemberController } from '../services/memberController';
 
 interface ProjectExpense {
   id: string;
@@ -37,8 +38,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [expensesLoading, setExpensesLoading] = useState(false);
+  const [memberCount, setMemberCount] = useState<number>(0);
   const stats = getProjectStats(project.taches);
-  const [projectMemberCount, setProjectMemberCount] = useState<number>(0);
 
   // Check if project has budget
   const hasBudget = project.budget_initial && project.budget_initial > 0;
@@ -90,32 +91,22 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
     }
   };
 
+  // Load member count
+  const loadMemberCount = async () => {
+    try {
+      const count = await MemberController.getProjectMemberCount(project.id);
+      setMemberCount(count);
+    } catch (error) {
+      console.error('Erreur lors du chargement du nombre de membres:', error);
+      setMemberCount(0);
+    }
+  };
+
   // Load expenses when component mounts or project changes
   useEffect(() => {
     loadExpenses();
+    loadMemberCount();
   }, [project.id, hasBudget]);
-
-  // Load project members count from projet_membres
-  useEffect(() => {
-    const loadMembersCount = async () => {
-      try {
-        const { count, error } = await supabase
-          .from('projet_membres')
-          .select('id', { count: 'exact', head: true })
-          .eq('projet_id', project.id);
-        if (error) {
-          console.error('Erreur chargement nombre de membres:', error);
-          setProjectMemberCount(0);
-        } else {
-          setProjectMemberCount(count || 0);
-        }
-      } catch (e) {
-        console.error('Erreur chargement nombre de membres:', e);
-        setProjectMemberCount(0);
-      }
-    };
-    loadMembersCount();
-  }, [project.id]);
 
   // Calculate budget summary when expenses change
   useEffect(() => {
@@ -344,7 +335,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
           </div>
           <div className="flex items-center space-x-2">
             <Users size={16} className="text-gray-400" />
-            <span className="text-gray-600">{projectMemberCount} membres</span>
+            <span className="text-gray-600">
+              {memberCount} membre{memberCount > 1 ? 's' : ''} du projet
+            </span>
           </div>
         </div>
 

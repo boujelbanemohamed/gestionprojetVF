@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Users, Plus, Trash2, AlertTriangle, User, Building, Briefcase, Search } from 'lucide-react';
 import { Project, User as UserType } from '../types';
-import { supabase } from '../services/supabase';
-import { SupabaseService } from '../services/supabaseService';
 
 interface ProjectMembersManagementModalProps {
   isOpen: boolean;
@@ -10,7 +8,6 @@ interface ProjectMembersManagementModalProps {
   project: Project;
   availableUsers: UserType[];
   onUpdateProject: (project: Project) => void;
-  onRefresh?: () => void; // Callback pour recharger les données
 }
 
 const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps> = ({
@@ -18,55 +15,20 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
   onClose,
   project,
   availableUsers,
-  onUpdateProject,
-  onRefresh
+  onUpdateProject
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [projectMembers, setProjectMembers] = useState<UserType[]>([]);
-  const [membersLoading, setMembersLoading] = useState(false);
-
-  // Load project members from projet_membres (not tasks)
-  useEffect(() => {
-    const loadMembers = async () => {
-      if (!isOpen) return;
-      setMembersLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('projet_membres')
-          .select('users(*)')
-          .eq('projet_id', project.id);
-        if (error) {
-          console.error('Erreur chargement membres du projet:', error);
-          setProjectMembers([]);
-        } else {
-          const members: UserType[] = (data || [])
-            .map((row: any) => row.users)
-            .filter(Boolean)
-            .map((u: any) => ({
-              id: u.id,
-              nom: u.nom,
-              prenom: u.prenom,
-              email: u.email,
-              fonction: u.fonction || undefined,
-              departement: u.departement,
-              role: u.role,
-              created_at: new Date(u.created_at)
-            }));
-          setProjectMembers(members);
-        }
-      } catch (e) {
-        console.error('Erreur chargement membres du projet:', e);
-        setProjectMembers([]);
-      } finally {
-        setMembersLoading(false);
-      }
-    };
-    loadMembers();
-  }, [isOpen, project.id]);
 
   if (!isOpen) return null;
 
-  // Get current project members (loaded from DB above)
+  // Get current project members
+  const projectMembers = Array.from(
+    new Map(
+      project.taches
+        .flatMap(task => task.utilisateurs)
+        .map(user => [user.id, user])
+    ).values()
+  );
 
   // Add project manager to members list if not already included
   const allProjectMembers = [...projectMembers];
@@ -102,22 +64,37 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
     return getUserTasks(userId).length === 0;
   };
 
-  // Add user to project (projet_membres), no task assignment
-  const handleAddUser = async (user: UserType) => {
-    try {
-      await SupabaseService.addProjectMember(project.id, user.id);
-      // Refresh members list
-      if (onRefresh) onRefresh();
-      // Local refresh
-      setProjectMembers(prev => [...prev, user]);
-    } catch (e) {
-      console.error('Erreur lors de l\'ajout du membre au projet:', e);
-      alert('Erreur lors de l\'ajout du membre au projet');
+  // Add user to project
+  const handleAddUser = (user: UserType) => {
+    // For demo purposes, we'll add the user to the first incomplete task
+    // In a real app, you might want to let the user choose which tasks to assign
+    const incompleteTask = project.taches.find(task => task.etat !== 'cloturee');
+    
+    if (incompleteTask) {
+      const updatedTasks = project.taches.map(task => {
+        if (task.id === incompleteTask.id) {
+          return {
+            ...task,
+            utilisateurs: [...task.utilisateurs, user]
+          };
+        }
+        return task;
+      });
+
+      const updatedProject = {
+        ...project,
+        taches: updatedTasks,
+        updated_at: new Date()
+      };
+
+      onUpdateProject(updatedProject);
+    } else {
+      alert('Aucune tâche disponible pour assigner ce membre. Créez d\'abord une tâche.');
     }
   };
 
-  // Remove user from project (prevent if has tasks)
-  const handleRemoveUser = async (user: UserType) => {
+  // Remove user from project
+  const handleRemoveUser = (user: UserType) => {
     const userTasks = getUserTasks(user.id);
     
     if (!canRemoveUser(user.id)) {
@@ -127,47 +104,18 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
     }
 
     if (window.confirm(`Êtes-vous sûr de vouloir retirer ${user.prenom} ${user.nom} du projet ?`)) {
-      try {
-        await SupabaseService.removeProjectMember(project.id, user.id);
+      const updatedTasks = project.taches.map(task => ({
+        ...task,
+        utilisateurs: task.utilisateurs.filter(u => u.id !== user.id)
+      }));
 
-        // Refresh members list
-        if (onRefresh) onRefresh();
-        setProjectMembers(prev => prev.filter(m => m.id !== user.id));
-      } catch (error) {
-        console.error('Erreur lors de la suppression du membre du projet:', error);
-        // @ts-ignore
-        if (error && error.code === 'MEMBER_HAS_TASKS') {
-          // @ts-ignore
-          alert(error.message || 'Le membre a des tâches assignées dans ce projet.');
-        } else {
-          alert('Erreur lors de la suppression du membre du projet');
-        }
-      }
-    }
-  };
+      const updatedProject = {
+        ...project,
+        taches: updatedTasks,
+        updated_at: new Date()
+      };
 
-  // Assign a project member to a specific task (explicit action)
-  const assignMemberToTask = async (userId: string, taskId: string) => {
-    try {
-      const alreadyAssigned = project.taches
-        .find(t => t.id === taskId)?.utilisateurs.some(u => u.id === userId);
-      if (alreadyAssigned) {
-        alert('Ce membre est déjà assigné à cette tâche.');
-        return;
-      }
-      const { error } = await supabase
-        .from('tache_utilisateurs')
-        .insert({ tache_id: taskId, user_id: userId });
-      if (error) {
-        console.error('Erreur lors de l\'assignation à la tâche:', error);
-        alert('Erreur lors de l\'assignation à la tâche');
-        return;
-      }
-      if (onRefresh) onRefresh();
-      alert('Membre assigné à la tâche');
-    } catch (e) {
-      console.error('Erreur lors de l\'assignation à la tâche:', e);
-      alert('Erreur lors de l\'assignation à la tâche');
+      onUpdateProject(updatedProject);
     }
   };
 

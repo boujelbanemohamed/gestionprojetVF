@@ -41,7 +41,7 @@ function App() {
   const { user: currentUser, loading: authLoading, signIn, signUp, signOut } = useAuth();
   const { departments, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
   const { users, updateUser, deleteUser } = useUsers();
-  const { projects, createProject, updateProject, deleteProject, refetch: refetchProjects } = useProjects();
+  const { projects, createProject, updateProject, deleteProject } = useProjects();
   
   const [currentRoute, setCurrentRoute] = useState<RouteConfig>(Router.getCurrentRoute());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -131,10 +131,7 @@ function App() {
     dateFin?: Date;
     attachments?: File[];
   }) => {
-    console.log('handleCreateProject called with:', projectData);
-    
     if (!PermissionService.hasPermission(currentUser, 'projects', 'create')) {
-      console.error('Permission denied for project creation');
       alert('Vous n\'avez pas les permissions pour créer un projet');
       return;
     }
@@ -145,10 +142,9 @@ function App() {
       if (projectData.departement) {
         const dept = departments.find(d => d.nom === projectData.departement);
         departement_id = dept?.id;
-        console.log('Department found:', dept, 'ID:', departement_id);
       }
 
-      const projectToCreate = {
+      const newProject = await createProject({
         nom: projectData.nom,
         type_projet: projectData.type_projet,
         description: projectData.description,
@@ -161,11 +157,7 @@ function App() {
         departement_id,
         date_debut: projectData.dateDebut,
         date_fin: projectData.dateFin
-      };
-      
-      console.log('Creating project with data:', projectToCreate);
-      const newProject = await createProject(projectToCreate);
-      console.log('Project created successfully:', newProject);
+      });
 
       Analytics.trackProjectCreated(newProject.nom, currentUser!.id);
       NotificationService.success(
@@ -182,11 +174,8 @@ function App() {
   };
 
   const handleUpdateProject = async (updatedProject: Project) => {
-    console.log('handleUpdateProject called with:', updatedProject);
     try {
-      console.log('Calling updateProject with ID:', updatedProject.id);
       await updateProject(updatedProject.id, updatedProject);
-      console.log('Project updated successfully');
       NotificationService.success('Projet mis à jour', 'Les modifications ont été sauvegardées');
     } catch (error) {
       console.error('Error updating project:', error);
@@ -589,7 +578,6 @@ function App() {
           departments={departments}
           currentUser={currentUser}
           meetingMinutes={meetingMinutes}
-          onRefresh={refetchProjects}
         />
       )}
       

@@ -49,12 +49,10 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
       const data = await SupabaseService.signIn(email, password);
       return data;
     } catch (error) {
       console.error('Erreur lors de la connexion:', error);
-      setLoading(false);
       throw error;
     }
   };
@@ -65,16 +63,8 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    try {
-      setLoading(true);
-      await SupabaseService.signOut();
-      setUser(null);
-      setLoading(false);
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-      setLoading(false);
-      throw error;
-    }
+    await SupabaseService.signOut();
+    setUser(null);
   };
 
   return {
@@ -226,28 +216,20 @@ export function useProjects() {
 
   const createProject = async (projectData: any) => {
     try {
-      console.log('useProjects.createProject called with:', projectData);
       const newProject = await SupabaseService.createProject(projectData);
-      console.log('SupabaseService.createProject returned:', newProject);
       setProjects(prev => [...prev, newProject]);
-      console.log('Projects updated, new count:', projects.length + 1);
       return newProject;
     } catch (err) {
-      console.error('Error in useProjects.createProject:', err);
       throw err;
     }
   };
 
   const updateProject = async (id: string, projectData: any) => {
     try {
-      console.log('useProjects.updateProject called with ID:', id, 'data:', projectData);
       const updatedProject = await SupabaseService.updateProject(id, projectData);
-      console.log('SupabaseService.updateProject returned:', updatedProject);
       setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
-      console.log('Projects updated in state');
       return updatedProject;
     } catch (err) {
-      console.error('Error in useProjects.updateProject:', err);
       throw err;
     }
   };
