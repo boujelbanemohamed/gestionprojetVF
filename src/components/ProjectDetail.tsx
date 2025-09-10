@@ -3,7 +3,7 @@ import { ArrowLeft, Plus, Download, BarChart3, Calendar, Users, Building, FileTe
 import { Project, Task, User as UserType, Comment, Department, ProjectAttachment, ProjectExpense, BudgetSummary } from '../types';
 import { supabase } from '../services/supabase';
 import { getProjectStats } from '../utils/calculations';
-import { calculateBudgetSummary } from '../utils/budgetCalculations';
+import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor } from '../utils/budgetCalculations';
 import { exportProjectToExcel } from '../utils/export';
 import { exportProjectToPdf } from '../utils/pdfExport';
 import TaskCard from './TaskCard';
@@ -18,7 +18,6 @@ import GanttChart from './GanttChart';
 import { isProjectApproachingDeadline, isProjectOverdue, getDaysUntilDeadline, getAlertMessage, getAlertSeverity, getAlertColorClasses, DEFAULT_ALERT_THRESHOLD } from '../utils/alertsConfig';
 import ProjectAlertSettingsModal from './ProjectAlertSettingsModal';
 import ProjectBudgetModal from './ProjectBudgetModal';
-import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor } from '../utils/budgetCalculations';
 import ProjectMembersManagementModal from './ProjectMembersManagementModal';
 import ProjectInfoModal from './ProjectInfoModal';
 import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';

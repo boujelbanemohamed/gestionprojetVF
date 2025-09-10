@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Users, Plus, Trash2, AlertTriangle, User, Building, Briefcase, Search } from 'lucide-react';
 import { Project, User as UserType } from '../types';
 import { supabase } from '../services/supabase';
+import { SupabaseService } from '../services/supabaseService';
 
 interface ProjectMembersManagementModalProps {
   isOpen: boolean;
@@ -104,7 +105,6 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
   // Add user to project (projet_membres), no task assignment
   const handleAddUser = async (user: UserType) => {
     try {
-      const { SupabaseService } = await import('../services/supabaseService');
       await SupabaseService.addProjectMember(project.id, user.id);
       // Refresh members list
       if (onRefresh) onRefresh();
@@ -128,7 +128,6 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
 
     if (window.confirm(`Êtes-vous sûr de vouloir retirer ${user.prenom} ${user.nom} du projet ?`)) {
       try {
-        const { SupabaseService } = await import('../services/supabaseService');
         await SupabaseService.removeProjectMember(project.id, user.id);
 
         // Refresh members list

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Plus, User, Building, Briefcase, FileText, PlayCircle, CheckCircle, Upload, Trash2, Download, Paperclip } from 'lucide-react';
 import { Task, User as UserType, TaskAttachment } from '../types';
+import { SupabaseService } from '../services/supabaseService';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -86,7 +87,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
         // Combine existing and new attachments
         const allAttachments = [...existingAttachments, ...newTaskAttachments];
 
-        const { SupabaseService } = await import('../services/supabaseService');
 
         // Création de tâche
         if (!task) {
