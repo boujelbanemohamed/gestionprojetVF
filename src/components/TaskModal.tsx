@@ -521,40 +521,56 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
               <span>Personnes assignées ({selectedUsers.length} sélectionnée{selectedUsers.length > 1 ? 's' : ''})</span>
             </h3>
             
+            {/* Affichage des membres actuellement assignés */}
+            {selectedUsers.length > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="text-sm font-medium text-blue-900 mb-2">Membres assignés :</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedUsers.map(user => (
+                    <div key={user.id} className="flex items-center space-x-2 bg-white px-3 py-1 rounded-full border border-blue-300">
+                      <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                        {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                      </div>
+                      <span className="text-sm text-gray-700">{user.prenom} {user.nom}</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleUser(user)}
+                        className="text-red-500 hover:text-red-700 ml-1"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-white">
-              {availableUsers.length === 0 ? (
+              {projectMembers.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <User className="mx-auto mb-2" size={32} />
-                  <p>Aucun membre disponible</p>
-                  <p className="text-sm">Créez d'abord des membres dans la gestion des membres</p>
+                  <p>Aucun membre du projet</p>
+                  <p className="text-sm">Ajoutez d'abord des membres au projet dans la gestion des membres</p>
                 </div>
               ) : (
-                // Prioriser les membres du projet, puis les autres utilisateurs
-                [
-                  ...projectMembers.filter(user => 
-                    !selectedUsers.some(selected => selected.id === user.id)
-                  ),
-                  ...availableUsers.filter(user => 
-                    !projectMembers.some(member => member.id === user.id) &&
-                    !selectedUsers.some(selected => selected.id === user.id)
-                  )
-                ].map(user => (
-                  <label key={user.id} className={`flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors border ${projectMembers.some(member => member.id === user.id) ? 'border-green-200 bg-green-50' : 'border-transparent'} hover:border-gray-200`}>
+                // Seuls les membres du projet peuvent être assignés aux tâches
+                projectMembers.filter(user => 
+                  !selectedUsers.some(selected => selected.id === user.id)
+                ).map(user => (
+                  <label key={user.id} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors border border-green-200 bg-green-50 hover:border-gray-200">
                     <input
                       type="checkbox"
                       checked={selectedUsers.some(u => u.id === user.id)}
                       onChange={() => toggleUser(user)}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm ${projectMembers.some(member => member.id === user.id) ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-blue-500 to-purple-600'}`}>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm bg-gradient-to-br from-green-500 to-emerald-600">
                       {user.prenom.charAt(0)}{user.nom.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900 flex items-center space-x-2">
                         <span>{user.prenom} {user.nom}</span>
-                        {projectMembers.some(member => member.id === user.id) && (
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Membre du projet</span>
-                        )}
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Membre du projet</span>
                       </div>
                       <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
                         <div className="flex items-center space-x-1">
@@ -573,7 +589,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
                 ))
               )}
             </div>
-            {selectedUsers.length === 0 && availableUsers.length > 0 && (
+            {selectedUsers.length === 0 && projectMembers.length > 0 && (
               <p className="text-sm text-red-600 mt-2">Veuillez sélectionner au moins une personne</p>
             )}
           </div>
@@ -589,7 +605,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             </button>
             <button
               type="submit"
-              disabled={!taskName.trim() || !taskDate || selectedUsers.length === 0 || availableUsers.length === 0}
+              disabled={!taskName.trim() || !taskDate || selectedUsers.length === 0 || projectMembers.length === 0}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center space-x-2"
             >
               {task ? <Save size={18} /> : <Plus size={18} />}
