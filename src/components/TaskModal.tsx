@@ -9,9 +9,10 @@ interface TaskModalProps {
   task?: Task;
   projectId: string;
   availableUsers: UserType[];
+  projectMembers?: UserType[]; // Membres du projet pour assignation
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, projectId, availableUsers }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, projectId, availableUsers, projectMembers = [] }) => {
   const [taskName, setTaskName] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [scenarioExecution, setScenarioExecution] = useState('');
@@ -528,20 +529,32 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
                   <p className="text-sm">Créez d'abord des membres dans la gestion des membres</p>
                 </div>
               ) : (
-                availableUsers.map(user => (
-                  <label key={user.id} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors border border-transparent hover:border-gray-200">
+                // Prioriser les membres du projet, puis les autres utilisateurs
+                [
+                  ...projectMembers.filter(user => 
+                    !selectedUsers.some(selected => selected.id === user.id)
+                  ),
+                  ...availableUsers.filter(user => 
+                    !projectMembers.some(member => member.id === user.id) &&
+                    !selectedUsers.some(selected => selected.id === user.id)
+                  )
+                ].map(user => (
+                  <label key={user.id} className={`flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors border ${projectMembers.some(member => member.id === user.id) ? 'border-green-200 bg-green-50' : 'border-transparent'} hover:border-gray-200`}>
                     <input
                       type="checkbox"
                       checked={selectedUsers.some(u => u.id === user.id)}
                       onChange={() => toggleUser(user)}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm ${projectMembers.some(member => member.id === user.id) ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-blue-500 to-purple-600'}`}>
                       {user.prenom.charAt(0)}{user.nom.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.prenom} {user.nom}
+                      <div className="text-sm font-medium text-gray-900 flex items-center space-x-2">
+                        <span>{user.prenom} {user.nom}</span>
+                        {projectMembers.some(member => member.id === user.id) && (
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Membre du projet</span>
+                        )}
                       </div>
                       <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
                         <div className="flex items-center space-x-1">

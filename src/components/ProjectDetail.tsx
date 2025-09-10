@@ -92,6 +92,42 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // State for real expenses
   const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
+  const [projectMembersFromDB, setProjectMembersFromDB] = useState<UserType[]>([]);
+
+  // Load project members from projet_membres table
+  const loadProjectMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projet_membres')
+        .select('users(*)')
+        .eq('projet_id', project.id);
+      
+      if (error) {
+        console.error('Erreur chargement membres du projet:', error);
+        setProjectMembersFromDB([]);
+        return;
+      }
+      
+      const members: UserType[] = (data || [])
+        .map((row: any) => row.users)
+        .filter(Boolean)
+        .map((u: any) => ({
+          id: u.id,
+          nom: u.nom,
+          prenom: u.prenom,
+          email: u.email,
+          fonction: u.fonction || undefined,
+          departement: u.departement,
+          role: u.role,
+          created_at: new Date(u.created_at)
+        }));
+      
+      setProjectMembersFromDB(members);
+    } catch (e) {
+      console.error('Erreur chargement membres du projet:', e);
+      setProjectMembersFromDB([]);
+    }
+  };
 
   // Load real expenses from Supabase
   const loadExpenses = async () => {
@@ -145,6 +181,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   useEffect(() => {
     loadExpenses();
+    loadProjectMembers();
   }, [project.id, hasBudget]);
 
   // State for budget summary
@@ -1025,6 +1062,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         task={editingTask}
         projectId={project.id}
         availableUsers={availableUsers}
+        projectMembers={projectMembersFromDB}
       />
 
       {/* Project Edit Modal */}
