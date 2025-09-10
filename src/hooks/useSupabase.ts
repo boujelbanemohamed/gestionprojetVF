@@ -216,10 +216,14 @@ export function useProjects() {
 
   const createProject = async (projectData: any) => {
     try {
+      console.log('useProjects.createProject called with:', projectData);
       const newProject = await SupabaseService.createProject(projectData);
+      console.log('SupabaseService.createProject returned:', newProject);
       setProjects(prev => [...prev, newProject]);
+      console.log('Projects updated, new count:', projects.length + 1);
       return newProject;
     } catch (err) {
+      console.error('Error in useProjects.createProject:', err);
       throw err;
     }
   };

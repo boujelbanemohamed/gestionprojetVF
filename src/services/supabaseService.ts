@@ -285,17 +285,27 @@ export class SupabaseService {
     date_debut?: Date;
     date_fin?: Date;
   }): Promise<Project> {
+    console.log('SupabaseService.createProject called with:', projectData);
+    
+    const insertData = {
+      ...projectData,
+      date_debut: projectData.date_debut?.toISOString().split('T')[0],
+      date_fin: projectData.date_fin?.toISOString().split('T')[0]
+    };
+    console.log('Insert data prepared:', insertData);
+    
     const { data, error } = await supabase
       .from('projets')
-      .insert({
-        ...projectData,
-        date_debut: projectData.date_debut?.toISOString().split('T')[0],
-        date_fin: projectData.date_fin?.toISOString().split('T')[0]
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error creating project:', error);
+      throw error;
+    }
+    
+    console.log('Project created in Supabase:', data);
 
     // Return the created project with empty tasks array
     return {

@@ -131,7 +131,10 @@ function App() {
     dateFin?: Date;
     attachments?: File[];
   }) => {
+    console.log('handleCreateProject called with:', projectData);
+    
     if (!PermissionService.hasPermission(currentUser, 'projects', 'create')) {
+      console.error('Permission denied for project creation');
       alert('Vous n\'avez pas les permissions pour créer un projet');
       return;
     }
@@ -142,9 +145,10 @@ function App() {
       if (projectData.departement) {
         const dept = departments.find(d => d.nom === projectData.departement);
         departement_id = dept?.id;
+        console.log('Department found:', dept, 'ID:', departement_id);
       }
 
-      const newProject = await createProject({
+      const projectToCreate = {
         nom: projectData.nom,
         type_projet: projectData.type_projet,
         description: projectData.description,
@@ -157,7 +161,11 @@ function App() {
         departement_id,
         date_debut: projectData.dateDebut,
         date_fin: projectData.dateFin
-      });
+      };
+      
+      console.log('Creating project with data:', projectToCreate);
+      const newProject = await createProject(projectToCreate);
+      console.log('Project created successfully:', newProject);
 
       Analytics.trackProjectCreated(newProject.nom, currentUser!.id);
       NotificationService.success(
