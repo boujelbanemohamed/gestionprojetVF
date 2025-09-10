@@ -20,6 +20,7 @@ import ProjectAlertSettingsModal from './ProjectAlertSettingsModal';
 import ProjectBudgetModal from './ProjectBudgetModal';
 import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor } from '../utils/budgetCalculations';
 import ProjectMembersManagementModal from './ProjectMembersManagementModal';
+import ProjectMembersManagement from './ProjectMembersManagement';
 import ProjectInfoModal from './ProjectInfoModal';
 import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';
 import { checkCanCloseProject, checkCanReopenProject } from '../utils/permissions';
@@ -91,6 +92,51 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // State for real expenses
   const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
+  
+  // State for project members
+  const [projectMembers, setProjectMembers] = useState<UserType[]>([]);
+
+  // Load project members
+  const loadProjectMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projet_membres')
+        .select(`
+          *,
+          utilisateur:users!projet_membres_utilisateur_id_fkey (
+            id,
+            nom,
+            prenom,
+            email,
+            fonction,
+            departement,
+            role,
+            created_at
+          )
+        `)
+        .eq('projet_id', project.id);
+
+      if (error) {
+        console.error('Erreur lors du chargement des membres du projet:', error);
+        setProjectMembers([]);
+      } else {
+        const members: UserType[] = data.map(member => ({
+          id: member.utilisateur.id,
+          nom: member.utilisateur.nom,
+          prenom: member.utilisateur.prenom,
+          email: member.utilisateur.email,
+          fonction: member.utilisateur.fonction,
+          departement: member.utilisateur.departement,
+          role: member.utilisateur.role,
+          created_at: new Date(member.utilisateur.created_at)
+        }));
+        setProjectMembers(members);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des membres du projet:', error);
+      setProjectMembers([]);
+    }
+  };
 
   // Load real expenses from Supabase
   const loadExpenses = async () => {
@@ -144,6 +190,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   useEffect(() => {
     loadExpenses();
+    loadProjectMembers();
   }, [project.id, hasBudget]);
 
   // State for budget summary
@@ -169,8 +216,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   const stats = getProjectStats(project.taches);
 
-  // Get unique members from all tasks
-  const projectMembers = Array.from(
+  // Get unique members from all tasks (legacy - now using projectMembers state)
+  const taskMembers = Array.from(
     new Map(
       project.taches
         .flatMap(task => task.utilisateurs)
@@ -813,6 +860,22 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           )}
         </div>
 
+        {/* Project Members Management */}
+        <div className="mb-8">
+          <ProjectMembersManagement
+            projectId={project.id}
+            currentUser={currentUser}
+            onMemberAdded={() => {
+              // Refresh project data if needed
+              console.log('Member added to project');
+            }}
+            onMemberRemoved={() => {
+              // Refresh project data if needed
+              console.log('Member removed from project');
+            }}
+          />
+        </div>
+
         {/* Status Progress Cards */}
 
         {/* Tasks Section */}
@@ -1046,7 +1109,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
         task={editingTask}
         projectId={project.id}
-        availableUsers={availableUsers}
+        availableUsers={projectMembers.length > 0 ? projectMembers : availableUsers}
       />
 
       {/* Project Edit Modal */}

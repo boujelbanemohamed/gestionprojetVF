@@ -21,6 +21,18 @@ export interface AuthUser {
   created_at: Date;
 }
 
+export interface ProjectMember {
+  id: string;
+  projet_id: string;
+  utilisateur_id: string;
+  role: 'membre' | 'responsable' | 'observateur';
+  assigne_le: Date;
+  assigne_par?: string;
+  created_at: Date;
+  updated_at: Date;
+  utilisateur?: User; // Populated when fetching with user details
+}
+
 export interface CommentAttachment {
   id: string;
   nom: string;
