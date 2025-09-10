@@ -583,9 +583,16 @@ export class SupabaseService {
         user:users!projet_membres_user_id_fkey(*)
       `)
       .eq('projet_id', projetId)
-      .order('added_at', { ascending: true });
+      .order('created_at', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      // Si la table n'existe pas encore, retourner un tableau vide
+      if (error.code === '42703' || error.message.includes('does not exist')) {
+        console.warn('Table projet_membres n\'existe pas encore, retour d\'un tableau vide');
+        return [];
+      }
+      throw error;
+    }
 
     return data.map(member => ({
       id: member.id,
@@ -593,7 +600,7 @@ export class SupabaseService {
       user_id: member.user_id,
       role: member.role,
       added_by: member.added_by,
-      added_at: new Date(member.added_at),
+      added_at: new Date(member.added_at || member.created_at),
       user: member.user ? {
         id: member.user.id,
         nom: member.user.nom,
@@ -631,7 +638,7 @@ export class SupabaseService {
       user_id: data.user_id,
       role: data.role,
       added_by: data.added_by,
-      added_at: new Date(data.added_at),
+      added_at: new Date(data.added_at || data.created_at),
       user: data.user ? {
         id: data.user.id,
         nom: data.user.nom,

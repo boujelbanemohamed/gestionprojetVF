@@ -107,10 +107,10 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
                 <Users size={20} className="text-blue-600" />
-                <span>Membres actuels ({allProjectMembers.length})</span>
+                <span>Membres actuels ({projectMembers.length})</span>
               </h3>
               
-              {allProjectMembers.length === 0 ? (
+              {projectMembers.length === 0 ? (
                 <div className="text-center py-8 bg-gray-50 rounded-lg">
                   <Users className="mx-auto text-gray-400 mb-2" size={32} />
                   <p className="text-gray-500">Aucun membre assigné</p>
