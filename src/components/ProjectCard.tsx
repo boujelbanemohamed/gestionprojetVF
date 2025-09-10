@@ -6,6 +6,7 @@ import { exportProjectToExcel } from '../utils/export';
 import { isProjectApproachingDeadline, isProjectOverdue, getDaysUntilDeadline, getAlertMessage, getAlertSeverity, getAlertColorClasses, DEFAULT_ALERT_THRESHOLD } from '../utils/alertsConfig';
 import { calculateBudgetSummary, getBudgetStatusColor, formatCurrency, BudgetSummary } from '../utils/budgetCalculations';
 import { supabase } from '../services/supabase';
+import { useProjectMembers } from '../hooks/useProjectMembers';
 
 interface ProjectExpense {
   id: string;
@@ -38,6 +39,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete })
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [expensesLoading, setExpensesLoading] = useState(false);
   const stats = getProjectStats(project.taches);
+
+  // Hook pour gérer les membres du projet
+  const { getMemberCount } = useProjectMembers(project.id);
 
   // Check if project has budget
   const hasBudget = project.budget_initial && project.budget_initial > 0;
