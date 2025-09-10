@@ -1254,6 +1254,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       onClose={() => setIsProjectInfoModalOpen(false)}
       project={project}
       availableUsers={availableUsers}
+      projectMembers={projectMembers}
+      membersLoading={membersLoading}
       onEditProject={() => {
         setIsProjectInfoModalOpen(false);
         setIsProjectEditModalOpen(true);

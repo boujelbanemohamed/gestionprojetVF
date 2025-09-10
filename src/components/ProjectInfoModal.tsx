@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, FileText, Calendar, User, ExternalLink, DollarSign, Building, Download, Edit2, Lightbulb, TrendingUp, Users, Plus, Clock, MapPin, Briefcase } from 'lucide-react';
-import { Project, User as UserType } from '../types';
+import { Project, User as UserType, ProjetMembre } from '../types';
 import { exportProjectToPdf } from '../utils/pdfExport';
 
 interface ProjectInfoModalProps {
@@ -8,6 +8,8 @@ interface ProjectInfoModalProps {
   onClose: () => void;
   project: Project;
   availableUsers: UserType[];
+  projectMembers: ProjetMembre[];
+  membersLoading: boolean;
   onEditProject: () => void;
   onManageMembers: () => void;
 }
@@ -17,6 +19,8 @@ const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
   onClose,
   project,
   availableUsers,
+  projectMembers,
+  membersLoading,
   onEditProject,
   onManageMembers
 }) => {
@@ -26,21 +30,6 @@ const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
   const projectManager = project.responsable_id 
     ? availableUsers.find(user => user.id === project.responsable_id)
     : null;
-
-  // Get unique members from all tasks
-  const projectMembers = Array.from(
-    new Map(
-      project.taches
-        .flatMap(task => task.utilisateurs)
-        .map(user => [user.id, user])
-    ).values()
-  );
-
-  // Add project manager to members list if not already included
-  const allProjectMembers = [...projectMembers];
-  if (projectManager && !projectMembers.some(member => member.id === projectManager.id)) {
-    allProjectMembers.push(projectManager);
-  }
 
   const handleExportPdf = () => {
     exportProjectToPdf(project);
@@ -278,7 +267,7 @@ const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                     <Users size={20} className="text-purple-600" />
                   </div>
                   <h4 className="text-lg font-semibold text-gray-900">
-                    Équipe du projet ({allProjectMembers.length} membre{allProjectMembers.length > 1 ? 's' : ''})
+                    Équipe du projet ({projectMembers.length} membre{projectMembers.length > 1 ? 's' : ''})
                   </h4>
                 </div>
                 <button
@@ -290,41 +279,61 @@ const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                 </button>
               </div>
               
-              {allProjectMembers.length > 0 ? (
+              {membersLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : projectMembers.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {allProjectMembers.map((member) => (
-                    <div key={member.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {member.prenom.charAt(0)}{member.nom.charAt(0)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
-                              {member.prenom} {member.nom}
-                            </p>
-                            {member.id === project.responsable_id && (
-                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                                Responsable
-                              </span>
-                            )}
+                  {projectMembers.map((member) => {
+                    const user = member.user;
+                    if (!user) return null;
+                    
+                    const isProjectManager = user.id === project.responsable_id;
+                    const userTasks = project.taches.filter(task => 
+                      task.utilisateurs.some(u => u.id === user.id)
+                    );
+                    
+                    return (
+                      <div key={member.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                            {user.prenom.charAt(0)}{user.nom.charAt(0)}
                           </div>
-                          <div className="space-y-1">
-                            {member.fonction && (
-                              <div className="flex items-center space-x-1 text-xs text-gray-500">
-                                <Briefcase size={10} />
-                                <span className="truncate">{member.fonction}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center space-x-1 text-xs text-gray-500">
-                              <Building size={10} />
-                              <span className="truncate">{member.departement}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <p className="text-sm font-semibold text-gray-900 truncate">
+                                {user.prenom} {user.nom}
+                              </p>
+                              {isProjectManager && (
+                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                                  Responsable
+                                </span>
+                              )}
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                                {member.role}
+                              </span>
                             </div>
+                            <div className="space-y-1">
+                              {user.fonction && (
+                                <div className="flex items-center space-x-1 text-xs text-gray-500">
+                                  <Briefcase size={10} />
+                                  <span className="truncate">{user.fonction}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center space-x-1 text-xs text-gray-500">
+                                <Building size={10} />
+                                <span className="truncate">{user.departement}</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {userTasks.length} tâche{userTasks.length > 1 ? 's' : ''} assignée{userTasks.length > 1 ? 's' : ''}
+                            </p>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
