@@ -28,6 +28,6 @@ CREATE POLICY "Allow update for authenticated users" ON projet_membres
 CREATE POLICY "Allow delete for authenticated users" ON projet_membres
     FOR DELETE USING (auth.role() = 'authenticated');
 
--- Index pour améliorer les performances
-CREATE INDEX idx_projet_membres_projet_id ON projet_membres(projet_id);
-CREATE INDEX idx_projet_membres_user_id ON projet_membres(user_id);
+-- Index pour améliorer les performances (créer seulement s'ils n'existent pas)
+CREATE INDEX IF NOT EXISTS idx_projet_membres_projet_id ON projet_membres(projet_id);
+CREATE INDEX IF NOT EXISTS idx_projet_membres_user_id ON projet_membres(user_id);

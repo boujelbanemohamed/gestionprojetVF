@@ -341,7 +341,7 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
         <div className="p-6 border-t bg-gray-50">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-500">
-              {allProjectMembers.length} membre{allProjectMembers.length > 1 ? 's' : ''} dans le projet • 
+              {projectMembers.length} membre{projectMembers.length > 1 ? 's' : ''} dans le projet • 
               {usersToAdd.length} membre{usersToAdd.length > 1 ? 's' : ''} disponible{usersToAdd.length > 1 ? 's' : ''}
             </div>
             <button
