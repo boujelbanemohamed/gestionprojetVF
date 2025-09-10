@@ -187,13 +187,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   }, [project.budget_initial, project.devise, projectExpenses]);
 
-  const stats = getProjectStats(project.taches);
+  const stats = getProjectStats(project.taches || []);
 
   // Get unique members from all tasks (legacy - now using projectMembers state)
   const taskMembers = Array.from(
     new Map(
-      project.taches
-        .flatMap(task => task.utilisateurs)
+      (project.taches || [])
+        .flatMap(task => task.utilisateurs || [])
         .map(user => [user.id, user])
     ).values()
   );
@@ -201,8 +201,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // Calculate total attachments count (project + all tasks + all comments)
   const getTotalAttachmentsCount = () => {
     const projectAttachments = project.attachments?.length || 0;
-    const taskAttachments = project.taches.reduce((sum, task) => sum + (task.attachments?.length || 0), 0);
-    const commentAttachments = project.taches.reduce((sum, task) => 
+    const taskAttachments = (project.taches || []).reduce((sum, task) => sum + (task.attachments?.length || 0), 0);
+    const commentAttachments = (project.taches || []).reduce((sum, task) => 
       sum + (task.commentaires?.reduce((commentSum, comment) => 
         commentSum + (comment.attachments?.length || 0), 0) || 0), 0);
     
@@ -234,7 +234,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
-  const filteredTasks = project.taches.filter(task => {
+  const filteredTasks = (project.taches || []).filter(task => {
     const matchesStatus = filterStatus === 'all' || task.etat === filterStatus;
     const matchesMember = filterMember === 'all' || task.utilisateurs.some(user => user.id === filterMember);
     return matchesStatus && matchesMember;
@@ -366,7 +366,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   };
 
   const handleDeleteTask = (taskId: string) => {
-    const taskToDelete = project.taches.find(t => t.id === taskId);
+    const taskToDelete = (project.taches || []).find(t => t.id === taskId);
     if (!taskToDelete) return;
 
     const commentsCount = taskToDelete.commentaires?.length || 0;
@@ -458,7 +458,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       created_at: new Date()
     };
 
-    const updatedTasks = project.taches.map(task => {
+    const updatedTasks = (project.taches || []).map(task => {
       if (task.id === taskId) {
         const updatedTask = {
           ...task,
@@ -490,7 +490,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const handleDeleteComment = (taskId: string, commentId: string) => {
     const currentUser = getCurrentUser();
     
-    const updatedTasks = project.taches.map(task => {
+    const updatedTasks = (project.taches || []).map(task => {
       if (task.id === taskId) {
         const commentToDelete = (task.commentaires || []).find(c => c.id === commentId);
         const updatedTask = {
@@ -601,7 +601,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const isApproachingDeadline = project.date_fin ? isProjectApproachingDeadline(project.date_fin, alertThreshold) : false;
   const isOverdue = project.date_fin ? isProjectOverdue(project.date_fin) : false;
   const daysUntilDeadline = project.date_fin ? getDaysUntilDeadline(project.date_fin) : null;
-  const showDeadlineAlert = (isApproachingDeadline || isOverdue) && project.taches.some(t => t.etat !== 'cloturee');
+  const showDeadlineAlert = (isApproachingDeadline || isOverdue) && (project.taches || []).some(t => t.etat !== 'cloturee');
   const alertMessage = daysUntilDeadline !== null ? getAlertMessage(daysUntilDeadline) : '';
   const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info';
   const alertColorClasses = getAlertColorClasses(alertSeverity);
@@ -647,8 +647,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               </div>
               <div className="mt-2">
                 <p className="text-gray-600">
-                  {project.taches.length} tâche{project.taches.length > 1 ? 's' : ''} • 
-                  {new Set(project.taches.flatMap(t => t.utilisateurs.map(u => u.id))).size} membre{new Set(project.taches.flatMap(t => t.utilisateurs.map(u => u.id))).size > 1 ? 's' : ''}
+                  {(project.taches || []).length} tâche{(project.taches || []).length > 1 ? 's' : ''} • 
+                  {new Set((project.taches || []).flatMap(t => (t.utilisateurs || []).map(u => u.id))).size} membre{new Set((project.taches || []).flatMap(t => (t.utilisateurs || []).map(u => u.id))).size > 1 ? 's' : ''}
                 </p>
               </div>
             </div>
@@ -837,10 +837,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           <div className="p-6 border-b">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                Tâches ({viewMode === 'list' ? filteredTasks.length : project.taches.length})
+                Tâches ({viewMode === 'list' ? filteredTasks.length : (project.taches || []).length})
                 {hasActiveFilters && viewMode === 'list' && (
                   <span className="text-sm font-normal text-gray-500 ml-2">
-                    sur {project.taches.length} au total
+                    sur {(project.taches || []).length} au total
                   </span>
                 )}
               </h3>
@@ -978,7 +978,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               </div>
             )}
             
-            {project.taches.length === 0 ? (
+            {(project.taches || []).length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">Aucune tâche</h4>
