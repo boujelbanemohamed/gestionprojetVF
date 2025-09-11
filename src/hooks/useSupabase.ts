@@ -9,27 +9,40 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial user
-    const initAuth = async () => {
-      try {
-        const currentUser = await SupabaseService.getCurrentUser();
-        setUser(currentUser);
-      } catch (error) {
-        console.error('Erreur lors de la récupération de l\'utilisateur:', error);
-        setUser(null);
-      } finally {
+    let timeoutId: NodeJS.Timeout;
+    
+    // Timeout de sécurité pour éviter les chargements infinis
+    timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn('Timeout d\'authentification - arrêt du chargement');
         setLoading(false);
       }
-    };
-
-    initAuth();
+    }, 10000); // 10 secondes max
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email);
         
-        if (session?.user) {
+        // Annuler le timeout car on a une réponse
+        clearTimeout(timeoutId);
+        
+        if (event === 'INITIAL_SESSION') {
+          // Gérer la session initiale
+          if (session?.user) {
+            try {
+              const currentUser = await SupabaseService.getCurrentUser();
+              setUser(currentUser);
+            } catch (error) {
+              console.error('Erreur lors de la récupération de l\'utilisateur initial:', error);
+              setUser(null);
+            }
+          } else {
+            setUser(null);
+          }
+          setLoading(false);
+        } else if (event === 'SIGNED_IN') {
+          // Utilisateur connecté
           try {
             const currentUser = await SupabaseService.getCurrentUser();
             setUser(currentUser);
@@ -37,15 +50,32 @@ export function useAuth() {
             console.error('Erreur lors de la récupération du profil utilisateur:', error);
             setUser(null);
           }
-        } else {
+          setLoading(false);
+        } else if (event === 'SIGNED_OUT') {
+          // Utilisateur déconnecté
           setUser(null);
+          setLoading(false);
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Token rafraîchi
+          if (session?.user) {
+            try {
+              const currentUser = await SupabaseService.getCurrentUser();
+              setUser(currentUser);
+            } catch (error) {
+              console.error('Erreur lors du rafraîchissement du profil utilisateur:', error);
+              setUser(null);
+            }
+          }
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
+  }, [loading]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -63,8 +93,16 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    await SupabaseService.signOut();
-    setUser(null);
+    try {
+      await SupabaseService.signOut();
+      setUser(null);
+      setLoading(false);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      // Forcer la déconnexion même en cas d'erreur
+      setUser(null);
+      setLoading(false);
+    }
   };
 
   return {
