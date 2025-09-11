@@ -409,38 +409,74 @@ export class SupabaseService {
   static async assignUsersToTask(taskId: string, userIds: string[], currentUserId?: string): Promise<void> {
     console.log('SupabaseService.assignUsersToTask - Called with:', { taskId, userIds, currentUserId });
     
-    // First, remove existing assignments
-    const { error: deleteError } = await supabase
-      .from('task_users')
-      .delete()
-      .eq('task_id', taskId);
+    try {
+      // Vérifier que la tâche existe
+      const { data: task, error: taskError } = await supabase
+        .from('taches')
+        .select('id')
+        .eq('id', taskId)
+        .single();
 
-    if (deleteError) {
-      console.error('Error deleting existing assignments:', deleteError);
-      throw deleteError;
-    }
-
-    // Then add new assignments
-    if (userIds.length > 0) {
-      const assignments = userIds.map(userId => ({
-        task_id: taskId,
-        user_id: userId,
-        assigned_by: currentUserId || null
-      }));
-
-      console.log('Inserting new assignments:', assignments);
-
-      const { error: insertError } = await supabase
-        .from('task_users')
-        .insert(assignments);
-
-      if (insertError) {
-        console.error('Error inserting new assignments:', insertError);
-        throw insertError;
+      if (taskError) {
+        console.error('Error verifying task exists:', taskError);
+        throw new Error(`Tâche non trouvée: ${taskError.message}`);
       }
+
+      // Vérifier que tous les utilisateurs existent
+      if (userIds.length > 0) {
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id')
+          .in('id', userIds);
+
+        if (usersError) {
+          console.error('Error verifying users exist:', usersError);
+          throw new Error(`Erreur lors de la vérification des utilisateurs: ${usersError.message}`);
+        }
+
+        if (users.length !== userIds.length) {
+          const foundIds = users.map(u => u.id);
+          const missingIds = userIds.filter(id => !foundIds.includes(id));
+          throw new Error(`Utilisateurs non trouvés: ${missingIds.join(', ')}`);
+        }
+      }
+
+      // Supprimer les assignations existantes
+      const { error: deleteError } = await supabase
+        .from('task_users')
+        .delete()
+        .eq('task_id', taskId);
+
+      if (deleteError) {
+        console.error('Error deleting existing assignments:', deleteError);
+        throw new Error(`Erreur lors de la suppression des assignations existantes: ${deleteError.message}`);
+      }
+
+      // Ajouter les nouvelles assignations
+      if (userIds.length > 0) {
+        const assignments = userIds.map(userId => ({
+          task_id: taskId,
+          user_id: userId,
+          assigned_by: currentUserId || null
+        }));
+
+        console.log('Inserting new assignments:', assignments);
+
+        const { error: insertError } = await supabase
+          .from('task_users')
+          .insert(assignments);
+
+        if (insertError) {
+          console.error('Error inserting new assignments:', insertError);
+          throw new Error(`Erreur lors de l'assignation des utilisateurs: ${insertError.message}`);
+        }
+      }
+      
+      console.log('Successfully assigned users to task');
+    } catch (error) {
+      console.error('Error in assignUsersToTask:', error);
+      throw error;
     }
-    
-    console.log('Successfully assigned users to task');
   }
 
   static async getTaskUsers(taskId: string): Promise<User[]> {
