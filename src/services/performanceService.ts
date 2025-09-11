@@ -44,16 +44,18 @@ export interface ProjectPerformanceData {
 export class PerformanceService {
   // Récupérer les performances des utilisateurs
   static async getUserPerformanceData(users: UserType[]): Promise<UserPerformanceData[]> {
+    console.log('🔄 PerformanceService.getUserPerformanceData - Début avec', users.length, 'utilisateurs');
     const performanceData: UserPerformanceData[] = [];
 
     for (const user of users) {
       try {
+        console.log(`📊 Calcul des performances pour ${user.nom} ${user.prenom}`);
         // Récupérer toutes les tâches assignées à l'utilisateur
         const { data: userTasks, error: tasksError } = await supabase
           .from('tache_utilisateurs')
           .select(`
             tache_id,
-            taches!inner(
+            taches(
               id,
               nom,
               etat,
@@ -61,7 +63,7 @@ export class PerformanceService {
               date_realisation,
               date_fin_prevue,
               projet_id,
-              projets!inner(
+              projets(
                 id,
                 nom,
                 responsable_id
@@ -71,11 +73,12 @@ export class PerformanceService {
           .eq('user_id', user.id);
 
         if (tasksError) {
-          console.error(`Erreur lors de la récupération des tâches pour ${user.nom}:`, tasksError);
+          console.error(`❌ Erreur lors de la récupération des tâches pour ${user.nom}:`, tasksError);
           continue;
         }
 
-        const tasks = userTasks?.map(ut => ut.taches) || [];
+        const tasks = userTasks?.map(ut => ut.taches).filter(Boolean) || [];
+        console.log(`📋 Tâches trouvées pour ${user.nom}:`, tasks.length);
         
         // Calculer les statistiques
         const totalTasks = tasks.length;
@@ -149,11 +152,11 @@ export class PerformanceService {
           .from('tache_utilisateurs')
           .select(`
             tache_id,
-            taches!inner(
+            taches(
               id,
               etat,
               projet_id,
-              projets!inner(
+              projets(
                 id,
                 statut
               )
@@ -166,7 +169,7 @@ export class PerformanceService {
           continue;
         }
 
-        const tasks = deptTasks?.map(ut => ut.taches) || [];
+        const tasks = deptTasks?.map(ut => ut.taches).filter(Boolean) || [];
         const totalTasks = tasks.length;
         const completedTasks = tasks.filter(t => t.etat === 'cloturee').length;
         const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;

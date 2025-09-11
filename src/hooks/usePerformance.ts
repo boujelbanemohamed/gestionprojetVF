@@ -32,6 +32,7 @@ export const usePerformance = ({
 
   const refreshData = useCallback(async () => {
     if (projects.length === 0 || users.length === 0) {
+      console.log('⚠️ Pas de projets ou d\'utilisateurs, arrêt du chargement');
       setLoading(false);
       return;
     }
@@ -40,10 +41,19 @@ export const usePerformance = ({
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Actualisation des données de performance...');
+      console.log('🔄 Actualisation des données de performance...', {
+        projectsCount: projects.length,
+        usersCount: users.length
+      });
       const startTime = Date.now();
 
       const data = await PerformanceService.getAllPerformanceData(projects, users);
+
+      console.log('📊 Données récupérées:', {
+        userPerformance: data.userPerformance.length,
+        departmentPerformance: data.departmentPerformance.length,
+        projectPerformance: data.projectPerformance.length
+      });
 
       setUserPerformance(data.userPerformance);
       setDepartmentPerformance(data.departmentPerformance);
@@ -56,10 +66,17 @@ export const usePerformance = ({
     } catch (err) {
       console.error('❌ Erreur lors de l\'actualisation des données de performance:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      
+      // En cas d'erreur, on garde les données existantes mais on affiche l'erreur
+      if (userPerformance.length === 0 && departmentPerformance.length === 0 && projectPerformance.length === 0) {
+        setUserPerformance([]);
+        setDepartmentPerformance([]);
+        setProjectPerformance([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, [projects, users]);
+  }, [projects, users, userPerformance.length, departmentPerformance.length, projectPerformance.length]);
 
   // Charger les données initiales
   useEffect(() => {
