@@ -25,7 +25,7 @@ export const exportProjectToExcel = (project: Project): void => {
       task.utilisateurs.map(u => `${u.prenom} ${u.nom}`).join(', '),
       task.utilisateurs.map(u => u.fonction || 'Non spécifiée').join(', '),
       task.utilisateurs.map(u => u.departement).join(', '),
-      task.date_realisation.toLocaleDateString('fr-FR'),
+      task.date_realisation ? new Date(task.date_realisation).toLocaleDateString('fr-FR') : '-',
       task.commentaires ? `${task.commentaires.length} commentaire${task.commentaires.length > 1 ? 's' : ''}` : 'Aucun commentaire'
     ])
   ];

@@ -12,7 +12,7 @@ interface KanbanTaskCardProps {
 
 const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({ task, onTaskClick, onShowComments, onShowDetails, onDeleteTask }) => {
   const [showActions, setShowActions] = useState(false);
-  const isOverdue = new Date(task.date_realisation) < new Date() && task.etat !== 'cloturee';
+  const isOverdue = task.date_realisation ? new Date(task.date_realisation) < new Date() && task.etat !== 'cloturee' : false;
   const commentsCount = task.commentaires?.length || 0;
   const attachmentsCount = task.attachments?.length || 0;
 
@@ -232,7 +232,7 @@ const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({ task, onTaskClick, onSh
         <div className="flex items-center space-x-2 pt-2 border-t border-gray-100">
           <Calendar size={12} className={isOverdue ? 'text-red-500' : 'text-gray-400'} />
           <span className={`text-xs ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
-            {task.date_realisation.toLocaleDateString('fr-FR')}
+            {task.date_realisation ? new Date(task.date_realisation).toLocaleDateString('fr-FR') : '-'}
           </span>
           {isOverdue && task.etat !== 'cloturee' && (
             <span className="px-1.5 py-0.5 bg-red-100 text-red-800 rounded text-xs font-medium">

@@ -40,7 +40,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
       setScenarioExecution(task.scenario_execution || '');
       setCriteresAcceptation(task.criteres_acceptation || '');
       setTaskStatus(task.etat);
-      setTaskDate(task.date_realisation.toISOString().split('T')[0]);
+      setTaskDate(task.date_realisation ? task.date_realisation.toISOString().split('T')[0] : '');
       setSelectedUsers(task.utilisateurs);
       setExistingAttachments(task.attachments || []);
       setNewAttachments([]);

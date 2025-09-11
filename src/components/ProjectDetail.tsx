@@ -416,7 +416,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     if (oldTask.description !== taskData.description) changes.push('description');
     if (oldTask.scenario_execution !== taskData.scenario_execution) changes.push('scénario d\'exécution');
     if (oldTask.criteres_acceptation !== taskData.criteres_acceptation) changes.push('critères d\'acceptation');
-    if (oldTask.date_realisation.getTime() !== taskData.date_realisation.getTime()) {
+    if (oldTask.date_realisation && taskData.date_realisation && 
+        oldTask.date_realisation.getTime() !== taskData.date_realisation.getTime()) {
       changes.push('date de réalisation');
       newHistory.push(addDateChangedHistory(oldTask, currentUser, oldTask.date_realisation, taskData.date_realisation));
     }

@@ -33,7 +33,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isOverdue = new Date(currentTask.date_realisation) < new Date() && currentTask.etat !== 'cloturee';
+  const isOverdue = currentTask.date_realisation ? new Date(currentTask.date_realisation) < new Date() && currentTask.etat !== 'cloturee' : false;
   const commentsCount = currentTask.commentaires?.length || 0;
   const historyCount = currentTask.history?.length || 0;
   const attachmentsCount = currentTask.attachments?.length || 0;
@@ -175,7 +175,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                   <div className="flex items-center space-x-2">
                     <Calendar size={16} className={isOverdue ? 'text-red-500' : 'text-gray-400'} />
                     <span className={`text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
-                      Échéance : {currentTask.date_realisation.toLocaleDateString('fr-FR')}
+                      Échéance : {currentTask.date_realisation ? new Date(currentTask.date_realisation).toLocaleDateString('fr-FR') : '-'}
                     </span>
                     {isOverdue && currentTask.etat !== 'cloturee' && (
                       <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
@@ -413,7 +413,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
           <div className="p-6 border-t bg-gray-50">
             <div className="flex justify-between items-center">
               <div className="text-sm text-gray-500">
-                Créée le {new Date(currentTask.date_realisation).toLocaleDateString('fr-FR')}
+                Créée le {currentTask.date_realisation ? new Date(currentTask.date_realisation).toLocaleDateString('fr-FR') : '-'}
               </div>
               <div className="flex space-x-3">
                 <button
