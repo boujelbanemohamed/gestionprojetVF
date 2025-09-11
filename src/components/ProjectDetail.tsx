@@ -74,10 +74,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const [localTasks, setLocalTasks] = useState<Task[]>(project.taches);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
 
-  // Synchroniser l'état local avec les tâches du projet
-  useEffect(() => {
-    setLocalTasks(project.taches);
-  }, [project.taches]);
+  // Note: localTasks est maintenant la source de vérité, pas de synchronisation avec project.taches
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedTaskForComments, setSelectedTaskForComments] = useState<Task | undefined>();
   const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState(false);
@@ -230,6 +227,19 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
+  // Debug: Log localTasks state
+  console.log('ProjectDetail - localTasks state:', {
+    localTasksCount: localTasks.length,
+    localTasks: localTasks.map(t => ({
+      id: t.id,
+      nom: t.nom,
+      utilisateurs: t.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || []
+    })),
+    filterMember,
+    filterStatus,
+    membersLoading
+  });
+
   const filteredTasks = localTasks.filter(task => {
     const matchesStatus = filterStatus === 'all' || task.etat === filterStatus;
     const hasUsers = Array.isArray(task.utilisateurs) && task.utilisateurs.length > 0;
@@ -255,6 +265,16 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
     
     return matchesStatus && matchesMember;
+  });
+
+  // Debug: Log filtered results
+  console.log('ProjectDetail - filteredTasks result:', {
+    filteredCount: filteredTasks.length,
+    filteredTasks: filteredTasks.map(t => ({
+      id: t.id,
+      nom: t.nom,
+      utilisateurs: t.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || []
+    }))
   });
 
   // Get current user for history tracking (in a real app, this would come from authentication)
@@ -433,6 +453,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     })));
 
     // Mettre à jour l'état local immédiatement (optimistic update)
+    console.log('handleUpdateTask - Setting localTasks to:', updatedTasks.map(t => ({
+      id: t.id,
+      nom: t.nom,
+      utilisateurs: t.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || []
+    })));
     setLocalTasks(updatedTasks);
 
     const updatedProject = {
