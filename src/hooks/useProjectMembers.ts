@@ -6,6 +6,7 @@ export function useProjectMembers(projetId: string) {
   const [members, setMembers] = useState<ProjetMembre[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   const loadMembers = async (forceRefresh = false) => {
     console.log('useProjectMembers - loadMembers called with projetId:', projetId, 'forceRefresh:', forceRefresh);
@@ -17,15 +18,23 @@ export function useProjectMembers(projetId: string) {
       return;
     }
 
+    // Éviter les appels multiples simultanés
+    if (isLoadingMembers && !forceRefresh) {
+      console.log('useProjectMembers - Already loading, skipping');
+      return;
+    }
+
     try {
       // Ne pas vider la liste existante, juste mettre à jour le loading
       setLoading(true);
+      setIsLoadingMembers(true);
       setError(null);
 
       const projectMembers = await SupabaseService.getProjectMembers(projetId);
 
       console.log('useProjectMembers - Received projectMembers:', projectMembers);
       setMembers(projectMembers);
+      setLoading(false); // Mettre à jour immédiatement après avoir reçu les données
     } catch (err) {
       console.error('useProjectMembers - Erreur lors du chargement des membres:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -33,8 +42,9 @@ export function useProjectMembers(projetId: string) {
       if (members.length === 0) {
         setMembers([]);
       }
+      setLoading(false); // Mettre à jour même en cas d'erreur
     } finally {
-      setLoading(false);
+      setIsLoadingMembers(false);
     }
   };
 
@@ -72,6 +82,12 @@ export function useProjectMembers(projetId: string) {
   };
 
   useEffect(() => {
+    // Reset l'état quand le projet change
+    setMembers([]);
+    setLoading(true);
+    setError(null);
+    setIsLoadingMembers(false);
+    
     loadMembers();
   }, [projetId]);
 
