@@ -551,6 +551,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   };
 
   const handleEditTaskFromDetails = (task: Task) => {
+    console.log('Opening edit modal for task:', task.nom, 'Current filterMember:', filterMember);
+    setFilterMember('all'); // Réinitialiser le filtre avant d'ouvrir le modal d'édition
     setEditingTask(task);
     setIsTaskDetailsModalOpen(false);
     setSelectedTaskForDetails(undefined);
@@ -1090,7 +1092,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
             ) : viewMode === 'kanban' ? (
               <KanbanBoard
                 tasks={project.taches}
-                onTaskClick={(task) => setEditingTask(task)}
+                onTaskClick={(task) => {
+                  console.log('Opening edit modal from kanban for task:', task.nom, 'Current filterMember:', filterMember);
+                  setFilterMember('all');
+                  setEditingTask(task);
+                }}
                 onShowComments={handleShowComments}
                 onShowDetails={handleShowTaskDetails}
                 onDeleteTask={handleDeleteTask}
@@ -1098,7 +1104,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
             ) : viewMode === 'gantt' ? (
               <GanttChart
                 tasks={project.taches}
-                onTaskClick={(task) => setEditingTask(task)}
+                onTaskClick={(task) => {
+                  console.log('Opening edit modal from gantt for task:', task.nom, 'Current filterMember:', filterMember);
+                  setFilterMember('all');
+                  setEditingTask(task);
+                }}
                 onShowComments={handleShowComments}
                 onShowDetails={handleShowTaskDetails}
                 onDeleteTask={handleDeleteTask}
@@ -1127,7 +1137,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                       <TaskCard
                         key={task.id}
                         task={task}
-                        onClick={() => setEditingTask(task)}
+                        onClick={() => {
+                          console.log('Opening edit modal from task card for task:', task.nom, 'Current filterMember:', filterMember);
+                          setFilterMember('all');
+                          setEditingTask(task);
+                        }}
                         onShowComments={handleShowComments}
                         onDelete={handleDeleteTask}
                       />
