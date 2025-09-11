@@ -852,4 +852,38 @@ export class SupabaseService {
     if (error) throw error;
     return count || 0;
   }
+
+  // Récupérer les tâches d'un projet
+  static async getProjectTasks(projetId: string): Promise<Task[]> {
+    try {
+      const { data, error } = await supabase
+        .from('taches')
+        .select(`
+          *,
+          utilisateurs:task_users(
+            user_id,
+            users!task_users_user_id_fkey(
+              id,
+              nom,
+              prenom,
+              email,
+              departement_id
+            )
+          )
+        `)
+        .eq('projet_id', projetId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transformer les données pour correspondre au format Task
+      return data.map(task => ({
+        ...task,
+        utilisateurs: task.utilisateurs?.map((tu: any) => tu.users) || []
+      }));
+    } catch (error) {
+      console.error('Error fetching project tasks:', error);
+      throw error;
+    }
+  }
 }

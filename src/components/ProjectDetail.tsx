@@ -71,12 +71,30 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMember, setFilterMember] = useState<string>('all');
-  const [localTasks, setLocalTasks] = useState<Task[]>(project.taches);
+  const [localTasks, setLocalTasks] = useState<Task[]>(project.taches || []);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
 
   // Note: localTasks est maintenant la source de vérité, pas de synchronisation avec project.taches
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedTaskForComments, setSelectedTaskForComments] = useState<Task | undefined>();
+
+  // Charger les tâches depuis Supabase si elles ne sont pas disponibles
+  useEffect(() => {
+    const loadTasksFromSupabase = async () => {
+      if (localTasks.length === 0 && project.id) {
+        console.log('Loading tasks from Supabase for project:', project.id);
+        try {
+          const tasks = await SupabaseService.getProjectTasks(project.id);
+          console.log('Loaded tasks from Supabase:', tasks);
+          setLocalTasks(tasks);
+        } catch (error) {
+          console.error('Error loading tasks from Supabase:', error);
+        }
+      }
+    };
+
+    loadTasksFromSupabase();
+  }, [project.id, localTasks.length]);
   const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('kanban');
   const [isTaskDetailsModalOpen, setIsTaskDetailsModalOpen] = useState(false);
@@ -1044,6 +1062,17 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                     </span>
                   )}
                 </h3>
+                {project.statut === 'actif' && availableUsers.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setEditingTask(undefined);
+                      setIsTaskModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Nouvelle tâche
+                  </button>
+                )}
                 
               </div>
  
