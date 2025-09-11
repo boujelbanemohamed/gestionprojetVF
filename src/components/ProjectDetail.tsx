@@ -873,21 +873,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                   <span>Budget</span>
                 </button>
               )}
-              <button
-                onClick={() => setIsTaskModalOpen(true)}
-                disabled={getMemberCount() === 0 || project.statut === 'cloture'}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-                title={
-                  project.statut === 'cloture' 
-                    ? 'Impossible de créer des tâches dans un projet clôturé'
-                    : getMemberCount() === 0 
-                      ? 'Créez d\'abord des membres pour pouvoir créer des tâches' 
-                      : ''
-                }
-              >
-                <Plus size={18} />
-                <span>Nouvelle tâche</span>
-              </button>
+              
             </div>
           </div>
         </div>
@@ -1047,15 +1033,18 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         <div className="bg-white rounded-xl shadow-sm">
           <div className="p-6 border-b">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Tâches ({viewMode === 'list' ? filteredTasks.length : localTasks.length})
-                {hasActiveFilters && viewMode === 'list' && (
-                  <span className="text-sm font-normal text-gray-500 ml-2">
-                    sur {localTasks.length} au total
-                  </span>
-                )}
-              </h3>
-              
+              <div className="flex items-center space-x-3">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Tâches ({viewMode === 'list' ? filteredTasks.length : localTasks.length})
+                  {hasActiveFilters && viewMode === 'list' && (
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      sur {localTasks.length} au total
+                    </span>
+                  )}
+                </h3>
+                
+              </div>
+ 
               {/* View Mode Toggle */}
               <div className="flex items-center space-x-4">
                 <div className="flex items-center bg-gray-100 rounded-lg p-1">
