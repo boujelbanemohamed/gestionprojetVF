@@ -355,7 +355,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     // Si des utilisateurs ont été assignés à la nouvelle tâche, forcer un refresh des membres
     if (taskData.utilisateurs && taskData.utilisateurs.length > 0) {
       console.log('New task with users assigned, forcing member refresh');
-      loadMembers(true); // forceRefresh = true
+      // Appeler loadMembers de manière asynchrone pour éviter les erreurs synchrones
+      Promise.resolve().then(() => loadMembers(true));
     }
     
     safeUpdateProject(updatedProject);
@@ -446,7 +447,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     // Si des utilisateurs ont été assignés/désassignés, forcer un refresh des membres
     if (userAssignmentChanged) {
       console.log('User assignment changed, forcing member refresh');
-      loadMembers(true); // forceRefresh = true
+      // Appeler loadMembers de manière asynchrone pour éviter les erreurs synchrones
+      Promise.resolve().then(() => loadMembers(true));
     }
     
     safeUpdateProject(updatedProject);

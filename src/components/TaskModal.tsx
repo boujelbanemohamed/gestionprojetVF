@@ -143,8 +143,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
           utilisateurs: completeTask.utilisateurs.map(u => ({ id: u.id, nom: u.nom }))
         });
 
-        onSubmit(completeTask);
-        onClose();
+        try {
+          onSubmit(completeTask);
+          onClose();
+        } catch (onSubmitError) {
+          console.error('Error in onSubmit callback:', onSubmitError);
+          throw onSubmitError; // Re-throw to be caught by outer catch
+        }
       } catch (error) {
         console.error('Erreur lors de la sauvegarde de la tâche:', error);
         alert('Erreur lors de la sauvegarde de la tâche');
