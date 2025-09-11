@@ -215,8 +215,16 @@ export class SupabaseService {
         departements(nom),
         taches(
           *,
-          tache_utilisateurs(
-            users(*)
+          utilisateurs:task_users(
+            user_id,
+            users!task_users_user_id_fkey(
+              id,
+              nom,
+              prenom,
+              email,
+              fonction,
+              departement_id
+            )
           ),
           commentaires(
             *,
@@ -258,7 +266,7 @@ export class SupabaseService {
         etat: task.etat,
         date_realisation: new Date(task.date_realisation),
         projet_id: task.projet_id,
-        utilisateurs: (task.tache_utilisateurs || []).map((tu: any) => tu.users).filter(Boolean),
+        utilisateurs: (task.utilisateurs || []).map((tu: any) => tu.users).filter(Boolean),
         commentaires: (task.commentaires || []).map((comment: any) => ({
           id: comment.id,
           contenu: comment.contenu,
