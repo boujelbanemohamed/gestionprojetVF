@@ -428,6 +428,29 @@ export class SupabaseService {
     }
   }
 
+  static async getTaskUsers(taskId: string): Promise<User[]> {
+    const { data, error } = await supabase
+      .from('tache_utilisateurs')
+      .select(`
+        user_id,
+        users (
+          id,
+          nom,
+          prenom,
+          email,
+          fonction,
+          departement,
+          role,
+          created_at
+        )
+      `)
+      .eq('tache_id', taskId);
+
+    if (error) throw error;
+
+    return data?.map(item => item.users).filter(Boolean) || [];
+  }
+
   static async updateTask(id: string, taskData: any): Promise<Task> {
     const { data, error } = await supabase
       .from('taches')

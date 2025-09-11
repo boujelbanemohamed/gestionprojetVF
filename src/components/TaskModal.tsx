@@ -79,6 +79,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
 
         // Persistance en base de la tâche et des assignations
         let taskId: string;
+        let assignedUsers: UserType[] = [];
+        
         if (!task) {
           const { SupabaseService } = await import('../services/supabaseService');
           const created = await SupabaseService.createTask({
@@ -92,7 +94,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
           });
           taskId = created.id;
           if (selectedUsers.length > 0) {
+            console.log('Assigning users to new task:', selectedUsers.map(u => ({ id: u.id, nom: u.nom })));
             await SupabaseService.assignUsersToTask(created.id, selectedUsers.map(u => u.id));
+            // Récupérer les utilisateurs assignés depuis la base de données
+            assignedUsers = await SupabaseService.getTaskUsers(created.id);
+            console.log('Retrieved assigned users for new task:', assignedUsers.map(u => ({ id: u.id, nom: u.nom })));
           }
         } else {
           // Édition: mettre à jour la tâche et réécrire les assignations
@@ -106,10 +112,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             date_realisation: new Date(taskDate)
           });
           taskId = task.id;
+          console.log('Assigning users to existing task:', selectedUsers.map(u => ({ id: u.id, nom: u.nom })));
           await SupabaseService.assignUsersToTask(task.id, selectedUsers.map(u => u.id));
+          // Récupérer les utilisateurs assignés depuis la base de données
+          assignedUsers = await SupabaseService.getTaskUsers(task.id);
+          console.log('Retrieved assigned users for existing task:', assignedUsers.map(u => ({ id: u.id, nom: u.nom })));
         }
 
-        // Créer un objet Task complet avec l'ID de la base de données
+        // Créer un objet Task complet avec l'ID de la base de données et les utilisateurs assignés
         const completeTask: Task = {
           id: taskId,
           nom: taskName.trim(),
@@ -119,11 +129,17 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
           etat: taskStatus,
           date_realisation: new Date(taskDate),
           projet_id: projectId,
-          utilisateurs: selectedUsers,
+          utilisateurs: assignedUsers,
           attachments: allAttachments.length > 0 ? allAttachments : undefined,
           commentaires: task?.commentaires || [],
           history: task?.history || []
         };
+
+        console.log('Complete task object being passed to onSubmit:', {
+          id: completeTask.id,
+          nom: completeTask.nom,
+          utilisateurs: completeTask.utilisateurs.map(u => ({ id: u.id, nom: u.nom }))
+        });
 
         onSubmit(completeTask);
         onClose();
