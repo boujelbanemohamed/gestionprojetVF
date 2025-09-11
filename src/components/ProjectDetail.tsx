@@ -226,7 +226,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   const filteredTasks = project.taches.filter(task => {
     const matchesStatus = filterStatus === 'all' || task.etat === filterStatus;
-    const matchesMember = filterMember === 'all' || task.utilisateurs.some(user => user.id === filterMember);
+    const matchesMember = filterMember === 'all' || task.utilisateurs.some(user => (user.id === filterMember));
     return matchesStatus && matchesMember;
   });
 
@@ -989,8 +989,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                 >
                   <option value="all">Tous les membres</option>
                   {projectMembers.map(member => (
-                    <option key={member.id} value={member.id}>
-                      {member.prenom} {member.nom}
+                    <option key={member.id} value={member.user?.id || member.user_id}>
+                      {member.user?.prenom || ''} {member.user?.nom || ''}
                     </option>
                   ))}
                 </select>
@@ -1030,7 +1030,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                   <div className="flex items-center space-x-2 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
                     <User size={14} />
                     <span>
-                      {projectMembers.find(m => m.id === filterMember)?.prenom} {projectMembers.find(m => m.id === filterMember)?.nom}
+                      {projectMembers.find(m => (m.user?.id || m.user_id) === filterMember)?.user?.prenom} {projectMembers.find(m => (m.user?.id || m.user_id) === filterMember)?.user?.nom}
                     </span>
                     <button
                       onClick={() => setFilterMember('all')}
