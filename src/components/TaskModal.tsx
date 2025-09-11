@@ -69,7 +69,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
           nom: file.name,
           taille: file.size,
           type: file.type,
-          url: URL.createObjectURL(file), // In a real app, this would be the server URL
+          url: URL.createObjectURL(file),
           uploaded_at: new Date(),
           uploaded_by: currentUser
         }));
@@ -77,10 +77,10 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
         // Combine existing and new attachments
         const allAttachments = [...existingAttachments, ...newTaskAttachments];
 
-        // Sauvegarder en base de données si c'est une nouvelle tâche
+        // Persistance en base de la tâche et des assignations
         if (!task) {
           const { SupabaseService } = await import('../services/supabaseService');
-          await SupabaseService.createTask({
+          const created = await SupabaseService.createTask({
             nom: taskName.trim(),
             description: taskDescription.trim() || undefined,
             scenario_execution: scenarioExecution.trim() || undefined,
@@ -89,6 +89,20 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             date_realisation: new Date(taskDate),
             projet_id: projectId
           });
+          // Assigner les utilisateurs sélectionnés à la tâche créée
+          await SupabaseService.assignUsersToTask(created.id, selectedUsers.map(u => u.id));
+        } else {
+          // Édition: mettre à jour la tâche et réécrire les assignations
+          const { SupabaseService } = await import('../services/supabaseService');
+          await SupabaseService.updateTask(task.id, {
+            nom: taskName.trim(),
+            description: taskDescription.trim() || undefined,
+            scenario_execution: scenarioExecution.trim() || undefined,
+            criteres_acceptation: criteresAcceptation.trim() || undefined,
+            etat: taskStatus,
+            date_realisation: new Date(taskDate)
+          });
+          await SupabaseService.assignUsersToTask(task.id, selectedUsers.map(u => u.id));
         }
 
         onSubmit({
