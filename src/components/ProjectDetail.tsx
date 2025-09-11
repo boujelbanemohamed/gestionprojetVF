@@ -231,17 +231,16 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       filterMember === 'all' || (hasUsers && task.utilisateurs.some(user => user.id === filterMember));
     
     // Debug logs
-    if (filterMember !== 'all') {
-      console.log('Filtering task:', {
-        taskId: task.id,
-        taskName: task.nom,
-        taskUsers: task.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || [],
-        filterMember,
-        hasUsers,
-        matchesMember,
-        matchesStatus
-      });
-    }
+    console.log('Filtering task:', {
+      taskId: task.id,
+      taskName: task.nom,
+      taskUsers: task.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || [],
+      filterMember,
+      hasUsers,
+      matchesMember,
+      matchesStatus,
+      finalResult: matchesStatus && matchesMember
+    });
     
     return matchesStatus && matchesMember;
   });
@@ -318,6 +317,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       updated_at: new Date()
     };
 
+    // Réinitialiser le filtre membre pour s'assurer que la nouvelle tâche est visible
+    setFilterMember('all');
+    
     onUpdateProject(updatedProject);
   };
 
@@ -360,6 +362,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       updated_at: new Date()
     };
 
+    // Réinitialiser le filtre membre pour s'assurer que la tâche mise à jour est visible
+    setFilterMember('all');
+    
     onUpdateProject(updatedProject);
   };
 
@@ -1139,7 +1144,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       <TaskModal
         isOpen={isTaskModalOpen || !!editingTask}
         onClose={() => {
-          console.log('TaskModal closing, resetting filter from:', filterMember, 'to: all');
+          console.log('TaskModal closing, current filterMember:', filterMember);
+          console.log('Resetting filter to: all');
           setIsTaskModalOpen(false);
           setEditingTask(undefined);
           // Réinitialiser le filtre pour éviter de masquer les tâches après assignation
