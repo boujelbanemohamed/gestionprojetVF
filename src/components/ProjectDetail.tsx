@@ -229,6 +229,20 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     const hasUsers = Array.isArray(task.utilisateurs) && task.utilisateurs.length > 0;
     const matchesMember =
       filterMember === 'all' || (hasUsers && task.utilisateurs.some(user => user.id === filterMember));
+    
+    // Debug logs
+    if (filterMember !== 'all') {
+      console.log('Filtering task:', {
+        taskId: task.id,
+        taskName: task.nom,
+        taskUsers: task.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || [],
+        filterMember,
+        hasUsers,
+        matchesMember,
+        matchesStatus
+      });
+    }
+    
     return matchesStatus && matchesMember;
   });
 
@@ -284,18 +298,19 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
-  const handleCreateTask = (taskData: Omit<Task, 'id'>) => {
+  const handleCreateTask = (taskData: Task) => {
     const currentUser = getCurrentUser();
     const newTask: Task = {
       ...taskData,
-      id: Date.now().toString(),
-      commentaires: [],
-      history: []
+      commentaires: taskData.commentaires || [],
+      history: taskData.history || []
     };
 
-    // Add creation history
-    const creationHistory = addTaskCreatedHistory(newTask, currentUser);
-    newTask.history = [creationHistory];
+    // Add creation history if not already present
+    if (!newTask.history || newTask.history.length === 0) {
+      const creationHistory = addTaskCreatedHistory(newTask, currentUser);
+      newTask.history = [creationHistory];
+    }
 
     const updatedProject = {
       ...project,
@@ -306,7 +321,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     onUpdateProject(updatedProject);
   };
 
-  const handleUpdateTask = (taskData: Omit<Task, 'id'>) => {
+  const handleUpdateTask = (taskData: Task) => {
     if (!editingTask) return;
 
     const currentUser = getCurrentUser();
@@ -1124,6 +1139,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       <TaskModal
         isOpen={isTaskModalOpen || !!editingTask}
         onClose={() => {
+          console.log('TaskModal closing, resetting filter from:', filterMember, 'to: all');
           setIsTaskModalOpen(false);
           setEditingTask(undefined);
           // Réinitialiser le filtre pour éviter de masquer les tâches après assignation

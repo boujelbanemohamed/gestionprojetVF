@@ -5,7 +5,7 @@ import { Task, User as UserType, TaskAttachment } from '../types';
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (task: Omit<Task, 'id'>) => void;
+  onSubmit: (task: Task) => void;
   task?: Task;
   projectId: string;
   availableUsers: UserType[];
@@ -78,6 +78,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
         const allAttachments = [...existingAttachments, ...newTaskAttachments];
 
         // Persistance en base de la tâche et des assignations
+        let taskId: string;
         if (!task) {
           const { SupabaseService } = await import('../services/supabaseService');
           const created = await SupabaseService.createTask({
@@ -89,6 +90,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             date_realisation: new Date(taskDate),
             projet_id: projectId
           });
+          taskId = created.id;
           if (selectedUsers.length > 0) {
             await SupabaseService.assignUsersToTask(created.id, selectedUsers.map(u => u.id));
           }
@@ -103,10 +105,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             etat: taskStatus,
             date_realisation: new Date(taskDate)
           });
+          taskId = task.id;
           await SupabaseService.assignUsersToTask(task.id, selectedUsers.map(u => u.id));
         }
 
-        onSubmit({
+        // Créer un objet Task complet avec l'ID de la base de données
+        const completeTask: Task = {
+          id: taskId,
           nom: taskName.trim(),
           description: taskDescription.trim() || undefined,
           scenario_execution: scenarioExecution.trim() || undefined,
@@ -115,8 +120,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
           date_realisation: new Date(taskDate),
           projet_id: projectId,
           utilisateurs: selectedUsers,
-          attachments: allAttachments.length > 0 ? allAttachments : undefined
-        });
+          attachments: allAttachments.length > 0 ? allAttachments : undefined,
+          commentaires: task?.commentaires || [],
+          history: task?.history || []
+        };
+
+        onSubmit(completeTask);
         onClose();
       } catch (error) {
         console.error('Erreur lors de la sauvegarde de la tâche:', error);
