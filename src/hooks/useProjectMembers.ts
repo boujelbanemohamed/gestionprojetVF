@@ -7,8 +7,8 @@ export function useProjectMembers(projetId: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadMembers = async () => {
-    console.log('useProjectMembers - loadMembers called with projetId:', projetId);
+  const loadMembers = async (forceRefresh = false) => {
+    console.log('useProjectMembers - loadMembers called with projetId:', projetId, 'forceRefresh:', forceRefresh);
     
     if (!projetId) {
       console.log('useProjectMembers - No projetId, setting empty members');
@@ -18,6 +18,7 @@ export function useProjectMembers(projetId: string) {
     }
 
     try {
+      // Ne pas vider la liste existante, juste mettre à jour le loading
       setLoading(true);
       setError(null);
 
@@ -36,7 +37,10 @@ export function useProjectMembers(projetId: string) {
     } catch (err) {
       console.error('useProjectMembers - Erreur lors du chargement des membres:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      setMembers([]);
+      // Ne pas vider la liste en cas d'erreur, garder les données existantes
+      if (members.length === 0) {
+        setMembers([]);
+      }
     } finally {
       setLoading(false);
     }

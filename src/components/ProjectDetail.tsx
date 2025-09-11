@@ -245,8 +245,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       hasUsers,
       matchesMember,
       matchesStatus,
+      membersLoading,
       finalResult: matchesStatus && matchesMember
     });
+    
+    // Si les membres sont en cours de chargement, ne pas appliquer le filtre membre
+    if (membersLoading && filterMember !== 'all') {
+      return matchesStatus;
+    }
     
     return matchesStatus && matchesMember;
   });
@@ -357,6 +363,35 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       newHistory.push(addStatusChangedHistory(oldTask, currentUser, oldTask.etat, taskData.etat));
     }
 
+    // Check for user assignment changes
+    const oldUserIds = (oldTask.utilisateurs || []).map(u => u.id).sort();
+    const newUserIds = (taskData.utilisateurs || []).map(u => u.id).sort();
+    const userAssignmentChanged = JSON.stringify(oldUserIds) !== JSON.stringify(newUserIds);
+    
+    if (userAssignmentChanged) {
+      console.log('User assignment changed:', {
+        old: oldUserIds,
+        new: newUserIds
+      });
+      // Add user assignment history
+      const addedUsers = newUserIds.filter(id => !oldUserIds.includes(id));
+      const removedUsers = oldUserIds.filter(id => !newUserIds.includes(id));
+      
+      addedUsers.forEach(userId => {
+        const user = taskData.utilisateurs?.find(u => u.id === userId);
+        if (user) {
+          newHistory.push(addUserAssignedHistory(oldTask, currentUser, user));
+        }
+      });
+      
+      removedUsers.forEach(userId => {
+        const user = oldTask.utilisateurs?.find(u => u.id === userId);
+        if (user) {
+          newHistory.push(addUserUnassignedHistory(oldTask, currentUser, user));
+        }
+      });
+    }
+
     // Mettre à jour la tâche localement, y compris les utilisateurs assignés
     const mergedTask: Task = {
       ...oldTask,
@@ -375,7 +410,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       utilisateurs: t.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || []
     })));
 
-    // Mettre à jour l'état local immédiatement
+    // Mettre à jour l'état local immédiatement (optimistic update)
     setLocalTasks(updatedTasks);
 
     const updatedProject = {
@@ -692,8 +727,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               </div>
               <div className="mt-2">
                 <p className="text-gray-600">
-                  {project.taches.length} tâche{project.taches.length > 1 ? 's' : ''} • 
-                  {getMemberCount()} membre{getMemberCount() > 1 ? 's' : ''}
+                  {localTasks.length} tâche{localTasks.length > 1 ? 's' : ''} • 
+                  {membersLoading ? (
+                    <span className="text-blue-600">Chargement des membres...</span>
+                  ) : (
+                    `${getMemberCount()} membre${getMemberCount() > 1 ? 's' : ''}`
+                  )}
                 </p>
               </div>
             </div>
