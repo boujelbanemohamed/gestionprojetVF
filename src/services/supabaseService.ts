@@ -228,7 +228,7 @@ export class SupabaseService {
           ),
           commentaires(
             *,
-            users(nom, prenom, email, fonction, role)
+            users!commentaires_auteur_id_fkey(nom, prenom, email, fonction, role)
           )
         )
       `)
