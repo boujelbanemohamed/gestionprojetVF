@@ -6,6 +6,7 @@ import { PermissionService } from './utils/permissions';
 import { Router, RouteConfig } from './utils/router';
 import { NotificationService } from './utils/notifications';
 import { Analytics } from './utils/analytics';
+import { DOMAIN_CONFIG, redirectToPrimaryDomain } from './config/domain';
 import Dashboard from './components/Dashboard';
 import ProjectDetail from './components/ProjectDetail';
 import MembersManagement from './components/MembersManagement';
@@ -54,6 +55,9 @@ function App() {
 
   // Initialize router and check authentication
   useEffect(() => {
+    // Rediriger vers le domaine principal si nécessaire
+    redirectToPrimaryDomain();
+    
     Router.init();
     
     const unsubscribe = Router.subscribe((route) => {
