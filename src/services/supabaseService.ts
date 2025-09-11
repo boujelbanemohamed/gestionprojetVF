@@ -482,11 +482,12 @@ export class SupabaseService {
   static async getTaskUsers(taskId: string): Promise<User[]> {
     console.log('SupabaseService.getTaskUsers - Called with taskId:', taskId);
     
-    const { data, error } = await supabase
+    // Tenter avec le nom de contrainte standard généré par Postgres
+    let { data, error } = await supabase
       .from('task_users')
       .select(`
         user_id,
-        users (
+        users!task_users_user_id_fkey (
           id,
           nom,
           prenom,
@@ -499,14 +500,35 @@ export class SupabaseService {
       `)
       .eq('task_id', taskId);
 
+    // Fallback: si la contrainte a un autre nom, essayer avec l'alias simple
+    if (error) {
+      console.warn('getTaskUsers fallback to generic relation alias due to:', error);
+      ({ data, error } = await supabase
+        .from('task_users')
+        .select(`
+          user_id,
+          users (
+            id,
+            nom,
+            prenom,
+            email,
+            fonction,
+            departement_id,
+            role,
+            created_at
+          )
+        `)
+        .eq('task_id', taskId));
+    }
+
     if (error) {
       console.error('Error fetching task users:', error);
       throw error;
     }
 
-    const users = data?.map(item => item.users).filter(Boolean) || [];
+    const users = (data as any[])?.map(item => item.users).filter(Boolean) || [];
     console.log('SupabaseService.getTaskUsers - Retrieved users:', users);
-    return users;
+    return users as User[];
   }
 
   static async updateTask(id: string, taskData: any): Promise<Task> {
