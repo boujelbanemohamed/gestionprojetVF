@@ -34,7 +34,6 @@ export function useProjectMembers(projetId: string) {
 
       console.log('useProjectMembers - Received projectMembers:', projectMembers);
       setMembers(projectMembers);
-      setLoading(false); // Mettre à jour immédiatement après avoir reçu les données
     } catch (err) {
       console.error('useProjectMembers - Erreur lors du chargement des membres:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -42,8 +41,8 @@ export function useProjectMembers(projetId: string) {
       if (members.length === 0) {
         setMembers([]);
       }
-      setLoading(false); // Mettre à jour même en cas d'erreur
     } finally {
+      setLoading(false);
       setIsLoadingMembers(false);
     }
   };

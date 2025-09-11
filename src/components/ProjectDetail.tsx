@@ -129,6 +129,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   console.log('ProjectDetail - projectMembers:', projectMembers);
   console.log('ProjectDetail - membersLoading:', membersLoading);
   console.log('ProjectDetail - getMemberCount():', getMemberCount());
+  console.log('ProjectDetail - budgetLoading:', budgetLoading);
+  console.log('ProjectDetail - isDataReady:', isDataReady);
 
   // Check if project has budget defined
   const hasBudget = project.budget_initial && project.devise;
@@ -992,7 +994,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           </div>
           
           <div className="p-6">
-            {!isDataReady ? (
+            {membersLoading ? (
               <div className="flex justify-center py-8">
                 <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
               </div>
