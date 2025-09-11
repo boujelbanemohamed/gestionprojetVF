@@ -626,6 +626,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     ? availableUsers.find(user => user.id === project.responsable_id)
     : null;
 
+  // Réinitialiser automatiquement le filtre membre s'il ne correspond à aucun membre courant
+  useEffect(() => {
+    if (filterMember === 'all') return;
+    const validUserIds = projectMembers.map(m => m.user?.id || m.user_id).filter(Boolean);
+    if (!validUserIds.includes(filterMember)) {
+      setFilterMember('all');
+    }
+  }, [projectMembers, filterMember]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
