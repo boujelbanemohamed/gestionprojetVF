@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, BarChart3, TrendingUp, Clock, Target, Users, Calendar, Download, Filter, Search, User, Building, FileText, ChevronLeft, ChevronRight, Archive } from 'lucide-react';
+import { ArrowLeft, BarChart3, TrendingUp, Clock, Target, Users, Calendar, Download, Filter, Search, User, Building, FileText, ChevronLeft, ChevronRight, Archive, RefreshCw, AlertCircle } from 'lucide-react';
 import { Project, User as UserType, AuthUser } from '../types';
 import { getProjectStats } from '../utils/calculations';
+import { usePerformance } from '../hooks/usePerformance';
 import * as XLSX from 'xlsx';
 
 interface PerformanceDashboardProps {
@@ -51,6 +52,18 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Utiliser le hook de performance pour les données dynamiques
+  const {
+    userPerformance: dynamicUserPerformance,
+    departmentPerformance: dynamicDepartmentPerformance,
+    projectPerformance: dynamicProjectPerformance,
+    loading: performanceLoading,
+    error: performanceError,
+    refreshData,
+    lastUpdated
+  } = usePerformance({ projects, users, refreshInterval: 60000 }); // Actualisation toutes les minutes
 
   // Filter tasks by date
   const getFilteredTasks = () => {
@@ -81,106 +94,82 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
 
   const filteredProjects = getFilteredTasks();
 
-  // Calculate user performance
+  // Calculate user performance (utilise les données dynamiques)
   const getUserPerformance = (): UserPerformance[] => {
-    return users.map(user => {
-      const userTasks = filteredProjects.flatMap(project => 
-        project.taches.filter(task => 
-          task.utilisateurs.some(u => u.id === user.id)
-        )
-      );
+    if (performanceLoading || !dynamicUserPerformance.length) {
+      return [];
+    }
 
-      const assignedProjects = filteredProjects.filter(project => 
-        project.taches.some(task => 
-          task.utilisateurs.some(u => u.id === user.id)
-        )
-      ).length;
-
-      const responsibleProjects = filteredProjects.filter(project => 
-        project.responsable_id === user.id
-      ).length;
-
-      const notStartedTasks = userTasks.filter(task => task.etat === 'non_debutee').length;
-      const inProgressTasks = userTasks.filter(task => task.etat === 'en_cours').length;
-      const completedTasks = userTasks.filter(task => task.etat === 'cloturee').length;
-      const totalTasks = userTasks.length;
-
-      return {
-        user,
-        totalTasks,
-        notStartedTasks,
-        inProgressTasks,
-        completedTasks,
-        completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
-        assignedProjects,
-        responsibleProjects
-      };
-    }).filter(perf => 
-      searchTerm === '' || 
-      perf.user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      perf.user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (perf.user.fonction && perf.user.fonction.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    return dynamicUserPerformance
+      .filter(perf => 
+        searchTerm === '' || 
+        perf.user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        perf.user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (perf.user.fonction && perf.user.fonction.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+      .map(perf => ({
+        user: perf.user,
+        totalTasks: perf.totalTasks,
+        notStartedTasks: perf.notStartedTasks,
+        inProgressTasks: perf.inProgressTasks,
+        completedTasks: perf.completedTasks,
+        completionRate: perf.completionRate,
+        assignedProjects: perf.assignedProjects,
+        responsibleProjects: perf.responsibleProjects
+      }));
   };
 
-  // Calculate department performance
+  // Calculate department performance (utilise les données dynamiques)
   const getDepartmentPerformance = (): DepartmentPerformance[] => {
-    const departments = Array.from(new Set(users.map(u => u.departement))).filter(Boolean);
-    
-    return departments.map(department => {
-      const departmentUsers = users.filter(u => u.departement === department);
-      const departmentTasks = filteredProjects.flatMap(project => 
-        project.taches.filter(task => 
-          task.utilisateurs.some(u => departmentUsers.some(du => du.id === u.id))
-        )
-      );
+    if (performanceLoading || !dynamicDepartmentPerformance.length) {
+      return [];
+    }
 
-      const departmentProjects = filteredProjects.filter(project => 
-        project.departement === department ||
-        project.taches.some(task => 
-          task.utilisateurs.some(u => departmentUsers.some(du => du.id === u.id))
-        )
-      ).length;
-
-      const notStartedTasks = departmentTasks.filter(task => task.etat === 'non_debutee').length;
-      const inProgressTasks = departmentTasks.filter(task => task.etat === 'en_cours').length;
-      const completedTasks = departmentTasks.filter(task => task.etat === 'cloturee').length;
-      const totalTasks = departmentTasks.length;
-
-      return {
-        department,
-        userCount: departmentUsers.length,
-        totalTasks,
-        notStartedTasks,
-        inProgressTasks,
-        completedTasks,
-        completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
-        projectCount: departmentProjects
-      };
-    }).filter(dept => 
-      searchTerm === '' || 
-      dept.department.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return dynamicDepartmentPerformance
+      .filter(dept => 
+        searchTerm === '' || 
+        dept.department.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .map(dept => ({
+        department: dept.department,
+        userCount: dept.userCount,
+        totalTasks: dept.totalTasks,
+        notStartedTasks: 0, // Calculé dynamiquement dans le service
+        inProgressTasks: 0, // Calculé dynamiquement dans le service
+        completedTasks: dept.completedTasks,
+        completionRate: dept.completionRate,
+        projectCount: dept.totalProjects
+      }));
   };
 
-  // Calculate project performance
+  // Calculate project performance (utilise les données dynamiques)
   const getProjectPerformance = (): ProjectPerformance[] => {
-    return filteredProjects.map(project => {
-      const stats = getProjectStats(project.taches);
-      const memberCount = new Set(project.taches.flatMap(t => t.utilisateurs.map(u => u.id))).size;
-      const responsibleUser = project.responsable_id ? users.find(u => u.id === project.responsable_id) : undefined;
+    if (performanceLoading || !dynamicProjectPerformance.length) {
+      return [];
+    }
 
-      return {
-        project,
-        stats,
-        memberCount,
-        responsibleUser
-      };
-    }).filter(proj => 
-      searchTerm === '' || 
-      proj.project.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (proj.project.description && proj.project.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    return dynamicProjectPerformance
+      .filter(proj => 
+        searchTerm === '' || 
+        proj.project.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (proj.project.description && proj.project.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+      .map(proj => ({
+        project: proj.project,
+        stats: proj.stats,
+        memberCount: proj.memberCount,
+        responsibleUser: proj.responsibleUser
+      }));
+  };
+
+  // Fonction de rafraîchissement manuel
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const userPerformance = getUserPerformance();
@@ -360,10 +349,41 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                   <p className="text-sm text-gray-500 mt-1">
                     Analysez les performances par utilisateur, département et projet
                   </p>
+                  {/* Indicateurs de statut */}
+                  <div className="flex items-center space-x-4 mt-2">
+                    {performanceLoading && (
+                      <div className="flex items-center space-x-2 text-blue-600">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm">Chargement des données...</span>
+                      </div>
+                    )}
+                    {performanceError && (
+                      <div className="flex items-center space-x-2 text-red-600">
+                        <AlertCircle size={16} />
+                        <span className="text-sm">Erreur de chargement</span>
+                      </div>
+                    )}
+                    {lastUpdated && !performanceLoading && (
+                      <div className="flex items-center space-x-2 text-gray-500">
+                        <Clock size={16} />
+                        <span className="text-sm">
+                          Dernière mise à jour: {lastUpdated.toLocaleTimeString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
             <div className="flex space-x-3">
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing || performanceLoading}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
+                <span>{isRefreshing ? 'Actualisation...' : 'Actualiser'}</span>
+              </button>
               <button
                 onClick={handleExportExcel}
                 className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
