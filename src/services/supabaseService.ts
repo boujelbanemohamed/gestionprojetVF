@@ -439,7 +439,7 @@ export class SupabaseService {
           prenom,
           email,
           fonction,
-          departement,
+          departement_id,
           role,
           created_at
         )
