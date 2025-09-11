@@ -329,41 +329,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       newHistory.push(addStatusChangedHistory(oldTask, currentUser, oldTask.etat, taskData.etat));
     }
 
-    // Check user assignments
-    const oldUserIds = oldTask.utilisateurs.map(u => u.id);
-    const newUserIds = taskData.utilisateurs.map(u => u.id);
-    
-    // Users added
-    const addedUserIds = newUserIds.filter(id => !oldUserIds.includes(id));
-    addedUserIds.forEach(userId => {
-      const user = taskData.utilisateurs.find(u => u.id === userId);
-      if (user) {
-        newHistory.push(addUserAssignedHistory(oldTask, currentUser, user));
-      }
-    });
+    // Mettre à jour la tâche localement, y compris les utilisateurs assignés
+    const mergedTask: Task = {
+      ...oldTask,
+      ...taskData,
+      utilisateurs: taskData.utilisateurs || oldTask.utilisateurs,
+      history: newHistory
+    };
 
-    // Users removed
-    const removedUserIds = oldUserIds.filter(id => !newUserIds.includes(id));
-    removedUserIds.forEach(userId => {
-      const user = oldTask.utilisateurs.find(u => u.id === userId);
-      if (user) {
-        newHistory.push(addUserUnassignedHistory(oldTask, currentUser, user));
-      }
-    });
-
-    // Add general update history if there are other changes
-    if (changes.length > 0) {
-      newHistory.push(addTaskUpdatedHistory(oldTask, currentUser, changes));
-    }
-
-    const updatedTasks = project.taches.map(task =>
-      task.id === editingTask.id ? { 
-        ...taskData, 
-        id: editingTask.id, 
-        commentaires: editingTask.commentaires || [],
-        history: newHistory
-      } : task
-    );
+    const updatedTasks = project.taches.map(t => (t.id === oldTask.id ? mergedTask : t));
 
     const updatedProject = {
       ...project,
@@ -372,7 +346,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     };
 
     onUpdateProject(updatedProject);
-    setEditingTask(undefined);
   };
 
   const handleDeleteTask = (taskId: string) => {
