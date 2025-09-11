@@ -95,7 +95,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
           taskId = created.id;
           if (selectedUsers.length > 0) {
             console.log('Assigning users to new task:', selectedUsers.map(u => ({ id: u.id, nom: u.nom })));
-            await SupabaseService.assignUsersToTask(created.id, selectedUsers.map(u => u.id));
+            const currentUser = getCurrentUser();
+            await SupabaseService.assignUsersToTask(created.id, selectedUsers.map(u => u.id), currentUser.id);
             // Récupérer les utilisateurs assignés depuis la base de données
             assignedUsers = await SupabaseService.getTaskUsers(created.id);
             console.log('Retrieved assigned users for new task:', assignedUsers.map(u => ({ id: u.id, nom: u.nom })));
@@ -113,7 +114,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
           });
           taskId = task.id;
           console.log('Assigning users to existing task:', selectedUsers.map(u => ({ id: u.id, nom: u.nom })));
-          await SupabaseService.assignUsersToTask(task.id, selectedUsers.map(u => u.id));
+          const currentUser = getCurrentUser();
+          await SupabaseService.assignUsersToTask(task.id, selectedUsers.map(u => u.id), currentUser.id);
           // Récupérer les utilisateurs assignés depuis la base de données
           assignedUsers = await SupabaseService.getTaskUsers(task.id);
           console.log('Retrieved assigned users for existing task:', assignedUsers.map(u => ({ id: u.id, nom: u.nom })));

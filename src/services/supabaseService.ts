@@ -406,31 +406,48 @@ export class SupabaseService {
     };
   }
 
-  static async assignUsersToTask(taskId: string, userIds: string[]): Promise<void> {
+  static async assignUsersToTask(taskId: string, userIds: string[], currentUserId?: string): Promise<void> {
+    console.log('SupabaseService.assignUsersToTask - Called with:', { taskId, userIds, currentUserId });
+    
     // First, remove existing assignments
-    await supabase
-      .from('tache_utilisateurs')
+    const { error: deleteError } = await supabase
+      .from('task_users')
       .delete()
-      .eq('tache_id', taskId);
+      .eq('task_id', taskId);
+
+    if (deleteError) {
+      console.error('Error deleting existing assignments:', deleteError);
+      throw deleteError;
+    }
 
     // Then add new assignments
     if (userIds.length > 0) {
       const assignments = userIds.map(userId => ({
-        tache_id: taskId,
-        user_id: userId
+        task_id: taskId,
+        user_id: userId,
+        assigned_by: currentUserId || null
       }));
 
-      const { error } = await supabase
-        .from('tache_utilisateurs')
+      console.log('Inserting new assignments:', assignments);
+
+      const { error: insertError } = await supabase
+        .from('task_users')
         .insert(assignments);
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('Error inserting new assignments:', insertError);
+        throw insertError;
+      }
     }
+    
+    console.log('Successfully assigned users to task');
   }
 
   static async getTaskUsers(taskId: string): Promise<User[]> {
+    console.log('SupabaseService.getTaskUsers - Called with taskId:', taskId);
+    
     const { data, error } = await supabase
-      .from('tache_utilisateurs')
+      .from('task_users')
       .select(`
         user_id,
         users (
@@ -444,11 +461,16 @@ export class SupabaseService {
           created_at
         )
       `)
-      .eq('tache_id', taskId);
+      .eq('task_id', taskId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching task users:', error);
+      throw error;
+    }
 
-    return data?.map(item => item.users).filter(Boolean) || [];
+    const users = data?.map(item => item.users).filter(Boolean) || [];
+    console.log('SupabaseService.getTaskUsers - Retrieved users:', users);
+    return users;
   }
 
   static async updateTask(id: string, taskData: any): Promise<Task> {
