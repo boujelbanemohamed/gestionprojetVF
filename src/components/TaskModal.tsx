@@ -59,7 +59,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (taskName.trim() && taskDate && selectedUsers.length > 0) {
+    if (taskName.trim() && taskDate) {
       try {
         const currentUser = getCurrentUser();
         
@@ -89,8 +89,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             date_realisation: new Date(taskDate),
             projet_id: projectId
           });
-          // Assigner les utilisateurs sélectionnés à la tâche créée
-          await SupabaseService.assignUsersToTask(created.id, selectedUsers.map(u => u.id));
+          if (selectedUsers.length > 0) {
+            await SupabaseService.assignUsersToTask(created.id, selectedUsers.map(u => u.id));
+          }
         } else {
           // Édition: mettre à jour la tâche et réécrire les assignations
           const { SupabaseService } = await import('../services/supabaseService');
@@ -585,7 +586,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
             </button>
             <button
               type="submit"
-              disabled={!taskName.trim() || !taskDate || selectedUsers.length === 0 || availableUsers.length === 0}
+              disabled={!taskName.trim() || !taskDate || availableUsers.length === 0}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center space-x-2"
             >
               {task ? <Save size={18} /> : <Plus size={18} />}
