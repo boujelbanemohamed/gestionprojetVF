@@ -1,7 +1,5 @@
 {
   "version": 2,
-  "name": "gestion-projets-mt",
-  "alias": ["www.gestionprojetsmt.online", "gestionprojetsmt.online"],
   "builds": [
     {
       "src": "package.json",
@@ -11,13 +9,10 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
