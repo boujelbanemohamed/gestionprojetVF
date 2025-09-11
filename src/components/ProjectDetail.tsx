@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Download, BarChart3, Calendar, Users, Building, FileText, User, X, Edit2, Grid3X3, List, Clock, Play, CheckCircle, Paperclip, BarChart, Star, ExternalLink, Lightbulb, TrendingUp, DollarSign, FileText as FileText2, AlertTriangle, Bell } from 'lucide-react';
 import { Project, Task, User as UserType, Comment, Department, ProjectAttachment, ProjectExpense, BudgetSummary, ProjetMembre } from '../types';
 import { supabase } from '../services/supabase';
+import { SupabaseService } from '../services/supabaseService';
 import { getProjectStats } from '../utils/calculations';
 import { calculateBudgetSummary } from '../utils/budgetCalculations';
 import { exportProjectToExcel } from '../utils/export';
