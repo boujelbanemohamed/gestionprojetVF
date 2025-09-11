@@ -350,11 +350,19 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     const mergedTask: Task = {
       ...oldTask,
       ...taskData,
-      utilisateurs: taskData.utilisateurs || oldTask.utilisateurs,
+      utilisateurs: taskData.utilisateurs, // Utiliser directement les utilisateurs de taskData
       history: newHistory
     };
 
+    console.log('handleUpdateTask - mergedTask utilisateurs:', mergedTask.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })));
+
     const updatedTasks = project.taches.map(t => (t.id === oldTask.id ? mergedTask : t));
+
+    console.log('handleUpdateTask - updatedTasks after mapping:', updatedTasks.map(t => ({
+      id: t.id,
+      nom: t.nom,
+      utilisateurs: t.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || []
+    })));
 
     const updatedProject = {
       ...project,
