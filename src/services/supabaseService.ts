@@ -576,50 +576,52 @@ export class SupabaseService {
 
   // Get project members
   static async getProjectMembers(projetId: string): Promise<ProjetMembre[]> {
-    console.log('SupabaseService.getProjectMembers - Called with projetId:', projetId);
-    
-    const { data, error } = await supabase
-      .from('projet_membres')
-      .select(`
-        *,
-        user:users!projet_membres_user_id_fkey(*)
-      `)
-      .eq('projet_id', projetId)
-      .order('created_at', { ascending: true });
+    try {
+      console.log('SupabaseService.getProjectMembers - Called with projetId:', projetId);
+      const { data, error } = await supabase
+        .from('projet_membres')
+        .select(`
+          *,
+          user:users!projet_membres_user_id_fkey(*)
+        `)
+        .eq('projet_id', projetId)
+        .order('created_at', { ascending: true });
 
-    console.log('SupabaseService.getProjectMembers - Raw data:', data);
-    console.log('SupabaseService.getProjectMembers - Error:', error);
-
-    if (error) {
-      // Si la table n'existe pas encore, retourner un tableau vide
-      if (error.code === '42703' || error.message.includes('does not exist')) {
-        console.warn('Table projet_membres n\'existe pas encore, retour d\'un tableau vide');
+      if (error) {
+        if (error.code === '42703' || (error.message || '').includes('does not exist')) {
+          console.warn("Table 'projet_membres' introuvable, retourne []");
+          return [];
+        }
+        console.warn('getProjectMembers error:', error);
         return [];
       }
-      throw error;
-    }
 
-    const mappedMembers = data.map(member => ({
-      id: member.id,
-      projet_id: member.projet_id,
-      user_id: member.user_id,
-      role: member.role,
-      added_by: member.added_by,
-      added_at: new Date(member.added_at || member.created_at),
-      user: member.user ? {
-        id: member.user.id,
-        nom: member.user.nom,
-        prenom: member.user.prenom,
-        fonction: member.user.fonction,
-        departement: member.user.departement_id ? 'Département' : 'Non assigné',
-        email: member.user.email,
-        role: member.user.role,
-        created_at: new Date(member.user.created_at)
-      } : undefined
-    }));
-    
-    console.log('SupabaseService.getProjectMembers - Mapped members:', mappedMembers);
-    return mappedMembers;
+      if (!Array.isArray(data)) return [];
+
+      const mappedMembers = data.map((member: any) => ({
+        id: member.id,
+        projet_id: member.projet_id,
+        user_id: member.user_id,
+        role: member.role,
+        added_by: member.added_by,
+        added_at: new Date(member.added_at || member.created_at),
+        user: member.user ? {
+          id: member.user.id,
+          nom: member.user.nom,
+          prenom: member.user.prenom,
+          fonction: member.user.fonction,
+          departement: member.user.departement_id ? 'Département' : 'Non assigné',
+          email: member.user.email,
+          role: member.user.role,
+          created_at: new Date(member.user.created_at)
+        } : undefined
+      }));
+
+      return mappedMembers;
+    } catch (e) {
+      console.error('getProjectMembers fatal error:', e);
+      return [];
+    }
   }
 
   // Add member to project
