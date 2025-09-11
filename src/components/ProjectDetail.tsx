@@ -309,6 +309,21 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
+  // Encapsule les mises à jour projet pour éviter les erreurs non catchées côté modals
+  const safeUpdateProject = (updatedProject: Project) => {
+    try {
+      const maybePromise = onUpdateProject(updatedProject);
+      // Si le callback retourne une promesse, capturer un rejet asynchrone
+      if (maybePromise && typeof (maybePromise as any).catch === 'function') {
+        (maybePromise as Promise<unknown>).catch((err) => {
+          console.error('onUpdateProject rejected:', err);
+        });
+      }
+    } catch (err) {
+      console.error('onUpdateProject threw synchronously:', err);
+    }
+  };
+
   const handleCreateTask = (taskData: Task) => {
     const currentUser = getCurrentUser();
     const newTask: Task = {
@@ -343,7 +358,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       loadMembers(true); // forceRefresh = true
     }
     
-    onUpdateProject(updatedProject);
+    safeUpdateProject(updatedProject);
   };
 
   const handleUpdateTask = (taskData: Task) => {
@@ -434,7 +449,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       loadMembers(true); // forceRefresh = true
     }
     
-    onUpdateProject(updatedProject);
+    safeUpdateProject(updatedProject);
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -493,7 +508,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         updated_at: new Date()
       };
 
-      onUpdateProject(updatedProject);
+      safeUpdateProject(updatedProject);
 
       // Close any open modals related to this task
       if (selectedTaskForComments && selectedTaskForComments.id === taskId) {
@@ -646,7 +661,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       updated_at: new Date()
     };
 
-    onUpdateProject(updatedProject);
+    safeUpdateProject(updatedProject);
 
     // Update the selected task for details modal
     setSelectedTaskForDetails(updatedTask);
