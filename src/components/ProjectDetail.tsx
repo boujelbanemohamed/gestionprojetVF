@@ -71,7 +71,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMember, setFilterMember] = useState<string>('all');
+  const [localTasks, setLocalTasks] = useState<Task[]>(project.taches);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+
+  // Synchroniser l'état local avec les tâches du projet
+  useEffect(() => {
+    setLocalTasks(project.taches);
+  }, [project.taches]);
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedTaskForComments, setSelectedTaskForComments] = useState<Task | undefined>();
   const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState(false);
@@ -184,15 +190,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   }, [project.budget_initial, project.devise, projectExpenses]);
 
-  const stats = getProjectStats(project.taches);
+  const stats = getProjectStats(localTasks);
 
   // projectMembers is now managed by the useProjectMembers hook
 
   // Calculate total attachments count (project + all tasks + all comments)
   const getTotalAttachmentsCount = () => {
     const projectAttachments = project.attachments?.length || 0;
-    const taskAttachments = project.taches.reduce((sum, task) => sum + (task.attachments?.length || 0), 0);
-    const commentAttachments = project.taches.reduce((sum, task) => 
+    const taskAttachments = localTasks.reduce((sum, task) => sum + (task.attachments?.length || 0), 0);
+    const commentAttachments = localTasks.reduce((sum, task) => 
       sum + (task.commentaires?.reduce((commentSum, comment) => 
         commentSum + (comment.attachments?.length || 0), 0) || 0), 0);
     
@@ -224,7 +230,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
-  const filteredTasks = project.taches.filter(task => {
+  const filteredTasks = localTasks.filter(task => {
     const matchesStatus = filterStatus === 'all' || task.etat === filterStatus;
     const hasUsers = Array.isArray(task.utilisateurs) && task.utilisateurs.length > 0;
     const matchesMember =
@@ -311,9 +317,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       newTask.history = [creationHistory];
     }
 
+    const updatedTasks = [...localTasks, newTask];
+    
+    // Mettre à jour l'état local immédiatement
+    setLocalTasks(updatedTasks);
+
     const updatedProject = {
       ...project,
-      taches: [...project.taches, newTask],
+      taches: updatedTasks,
       updated_at: new Date()
     };
 
@@ -356,13 +367,16 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
     console.log('handleUpdateTask - mergedTask utilisateurs:', mergedTask.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })));
 
-    const updatedTasks = project.taches.map(t => (t.id === oldTask.id ? mergedTask : t));
+    const updatedTasks = localTasks.map(t => (t.id === oldTask.id ? mergedTask : t));
 
     console.log('handleUpdateTask - updatedTasks after mapping:', updatedTasks.map(t => ({
       id: t.id,
       nom: t.nom,
       utilisateurs: t.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || []
     })));
+
+    // Mettre à jour l'état local immédiatement
+    setLocalTasks(updatedTasks);
 
     const updatedProject = {
       ...project,
@@ -377,7 +391,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   };
 
   const handleDeleteTask = (taskId: string) => {
-    const taskToDelete = project.taches.find(t => t.id === taskId);
+    const taskToDelete = localTasks.find(t => t.id === taskId);
     if (!taskToDelete) return;
 
     const commentsCount = taskToDelete.commentaires?.length || 0;
@@ -421,7 +435,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         });
       }
 
-      const updatedTasks = project.taches.filter(task => task.id !== taskId);
+      const updatedTasks = localTasks.filter(task => task.id !== taskId);
+      
+      // Mettre à jour l'état local immédiatement
+      setLocalTasks(updatedTasks);
+      
       const updatedProject = {
         ...project,
         taches: updatedTasks,
@@ -934,10 +952,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           <div className="p-6 border-b">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                Tâches ({viewMode === 'list' ? filteredTasks.length : project.taches.length})
+                Tâches ({viewMode === 'list' ? filteredTasks.length : localTasks.length})
                 {hasActiveFilters && viewMode === 'list' && (
                   <span className="text-sm font-normal text-gray-500 ml-2">
-                    sur {project.taches.length} au total
+                    sur {localTasks.length} au total
                   </span>
                 )}
               </h3>
@@ -1075,7 +1093,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               </div>
             )}
             
-            {project.taches.length === 0 ? (
+            {localTasks.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">Aucune tâche</h4>
@@ -1099,7 +1117,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               </div>
             ) : viewMode === 'kanban' ? (
               <KanbanBoard
-                tasks={project.taches}
+                tasks={localTasks}
                 onTaskClick={(task) => {
                   console.log('Opening edit modal from kanban for task:', task.nom, 'Current filterMember:', filterMember);
                   setFilterMember('all');
@@ -1111,7 +1129,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               />
             ) : viewMode === 'gantt' ? (
               <GanttChart
-                tasks={project.taches}
+                tasks={localTasks}
                 onTaskClick={(task) => {
                   console.log('Opening edit modal from gantt for task:', task.nom, 'Current filterMember:', filterMember);
                   setFilterMember('all');
