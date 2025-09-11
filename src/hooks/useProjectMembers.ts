@@ -22,15 +22,7 @@ export function useProjectMembers(projetId: string) {
       setLoading(true);
       setError(null);
 
-      // Filet de sécurité: timeout à 6s pour éviter un loader infini
-      const controller = new AbortController();
-      const timeout = setTimeout(() => {
-        console.warn('useProjectMembers - timeout reached, forcing loading=false');
-        setLoading(false);
-      }, 6000);
-
       const projectMembers = await SupabaseService.getProjectMembers(projetId);
-      clearTimeout(timeout);
 
       console.log('useProjectMembers - Received projectMembers:', projectMembers);
       setMembers(projectMembers);

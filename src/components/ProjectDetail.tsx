@@ -82,7 +82,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // Charger les tâches depuis Supabase si elles ne sont pas disponibles
   useEffect(() => {
     const loadTasksFromSupabase = async () => {
-      if (localTasks.length === 0 && project.id) {
+      if (project.id) {
         console.log('Loading tasks from Supabase for project:', project.id);
         try {
           const tasks = await SupabaseService.getProjectTasks(project.id);
@@ -95,7 +95,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     };
 
     loadTasksFromSupabase();
-  }, [project.id, localTasks.length]);
+  }, [project.id]); // Recharger les tâches à chaque changement de projet
   const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('kanban');
   const [isTaskDetailsModalOpen, setIsTaskDetailsModalOpen] = useState(false);
@@ -465,8 +465,17 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     };
 
     console.log('handleUpdateTask - mergedTask utilisateurs:', mergedTask.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })));
+    console.log('handleUpdateTask - oldTask.id:', oldTask.id, 'taskData.id:', taskData.id);
 
-    const updatedTasks = localTasks.map(t => (t.id === oldTask.id ? mergedTask : t));
+    const updatedTasks = localTasks.map(t => {
+      if (t.id === oldTask.id) {
+        console.log('handleUpdateTask - Updating task:', t.id, 'with users:', mergedTask.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })));
+        return mergedTask;
+      } else {
+        console.log('handleUpdateTask - Keeping task unchanged:', t.id, 'with users:', t.utilisateurs?.map(u => ({ id: u.id, nom: u.nom })) || []);
+        return t;
+      }
+    });
 
     console.log('handleUpdateTask - updatedTasks after mapping:', updatedTasks.map(t => ({
       id: t.id,
