@@ -23,7 +23,7 @@ interface ProjectExpense {
   updated_at: Date;
 }
 
-interface BudgetSummary {
+export interface BudgetSummary {
   budget_initial: number;
   devise_budget: string;
   total_depenses: number;

@@ -18,7 +18,7 @@ import GanttChart from './GanttChart';
 import { isProjectApproachingDeadline, isProjectOverdue, getDaysUntilDeadline, getAlertMessage, getAlertSeverity, getAlertColorClasses, DEFAULT_ALERT_THRESHOLD } from '../utils/alertsConfig';
 import ProjectAlertSettingsModal from './ProjectAlertSettingsModal';
 import ProjectBudgetModal from './ProjectBudgetModal';
-import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor, BudgetSummary } from '../utils/budgetCalculations';
+import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor, type BudgetSummary } from '../utils/budgetCalculations';
 import ProjectMembersManagementModal from './ProjectMembersManagementModal';
 import ProjectInfoModal from './ProjectInfoModal';
 import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';
@@ -59,6 +59,11 @@ interface ProjectExpense {
 interface AuthUser {
   id: string;
   email: string;
+  nom?: string;
+  prenom?: string;
+  departement?: string;
+  role?: string;
+  created_at?: string;
 }
 
 interface ProjectDetailProps {
@@ -129,8 +134,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   console.log('ProjectDetail - projectMembers:', projectMembers);
   console.log('ProjectDetail - membersLoading:', membersLoading);
   console.log('ProjectDetail - getMemberCount():', getMemberCount());
-  console.log('ProjectDetail - budgetLoading:', budgetLoading);
-  console.log('ProjectDetail - isDataReady:', isDataReady);
 
   // Check if project has budget defined
   const hasBudget = project.budget_initial && project.devise;
@@ -201,6 +204,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // État de chargement global pour s'assurer que toutes les données sont prêtes
   const isDataReady = !membersLoading && !budgetLoading;
+
+  // Debug logs pour le budget et l'état global
+  console.log('ProjectDetail - budgetLoading:', budgetLoading);
+  console.log('ProjectDetail - isDataReady:', isDataReady);
 
   // Calculate budget summary when expenses change
   useEffect(() => {
@@ -762,7 +769,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const daysUntilDeadline = project.date_fin ? getDaysUntilDeadline(project.date_fin) : null;
   const showDeadlineAlert = (isApproachingDeadline || isOverdue) && project.taches.some(t => t.etat !== 'cloturee');
   const alertMessage = daysUntilDeadline !== null ? getAlertMessage(daysUntilDeadline) : '';
-  const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info' as const;
+  const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info';
   const alertColorClasses = getAlertColorClasses(alertSeverity);
 
   // Get project manager
@@ -1329,7 +1336,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
         task={editingTask}
         projectId={project.id}
-        availableUsers={projectMembers.map(member => member.user!).filter(Boolean) as UserType[]}
+        availableUsers={availableUsers}
       />
 
       {/* Project Edit Modal */}
