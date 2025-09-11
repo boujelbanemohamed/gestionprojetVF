@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Download, BarChart3, Calendar, Users, Building, FileText, User, X, Edit2, Grid3X3, List, Clock, Play, CheckCircle, Paperclip, BarChart, Star, ExternalLink, Lightbulb, TrendingUp, DollarSign, FileText as FileText2, AlertTriangle, Bell } from 'lucide-react';
-import { Project, Task, User as UserType, Comment, Department, ProjectAttachment, ProjectExpense, BudgetSummary, ProjetMembre } from '../types';
+import { Project, Task, User as UserType, Comment, Department, ProjectAttachment, ProjetMembre } from '../types';
 import { supabase } from '../services/supabase';
 import { SupabaseService } from '../services/supabaseService';
 import { getProjectStats } from '../utils/calculations';
-import { calculateBudgetSummary } from '../utils/budgetCalculations';
 import { exportProjectToExcel } from '../utils/export';
 import { exportProjectToPdf } from '../utils/pdfExport';
 import TaskCard from './TaskCard';
@@ -19,7 +18,7 @@ import GanttChart from './GanttChart';
 import { isProjectApproachingDeadline, isProjectOverdue, getDaysUntilDeadline, getAlertMessage, getAlertSeverity, getAlertColorClasses, DEFAULT_ALERT_THRESHOLD } from '../utils/alertsConfig';
 import ProjectAlertSettingsModal from './ProjectAlertSettingsModal';
 import ProjectBudgetModal from './ProjectBudgetModal';
-import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor } from '../utils/budgetCalculations';
+import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor, BudgetSummary } from '../utils/budgetCalculations';
 import ProjectMembersManagementModal from './ProjectMembersManagementModal';
 import ProjectInfoModal from './ProjectInfoModal';
 import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';
@@ -55,6 +54,11 @@ interface ProjectExpense {
   created_by: string;
   created_at: Date;
   updated_at: Date;
+}
+
+interface AuthUser {
+  id: string;
+  email: string;
 }
 
 interface ProjectDetailProps {
@@ -126,9 +130,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   console.log('ProjectDetail - membersLoading:', membersLoading);
   console.log('ProjectDetail - getMemberCount():', getMemberCount());
 
-  // État de chargement global pour s'assurer que toutes les données sont prêtes
-  const isDataReady = !membersLoading && !budgetLoading;
-
   // Check if project has budget defined
   const hasBudget = project.budget_initial && project.devise;
 
@@ -195,6 +196,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // State for budget summary
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [budgetLoading, setBudgetLoading] = useState(true);
+
+  // État de chargement global pour s'assurer que toutes les données sont prêtes
+  const isDataReady = !membersLoading && !budgetLoading;
 
   // Calculate budget summary when expenses change
   useEffect(() => {
@@ -360,13 +364,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // Encapsule les mises à jour projet pour éviter les erreurs non catchées côté modals
   const safeUpdateProject = (updatedProject: Project) => {
     try {
-      const maybePromise = onUpdateProject(updatedProject);
-      // Si le callback retourne une promesse, capturer un rejet asynchrone
-      if (maybePromise && typeof (maybePromise as any).catch === 'function') {
-        (maybePromise as Promise<unknown>).catch((err) => {
-          console.error('onUpdateProject rejected:', err);
-        });
-      }
+      onUpdateProject(updatedProject);
     } catch (err) {
       console.error('onUpdateProject threw synchronously:', err);
     }
@@ -596,13 +594,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       ...project,
       nom: projectData.nom,
       description: projectData.description,
-      budget_initial: projectData.budget_initial,
-      devise: projectData.devise,
-      type_projet: projectData.type_projet,
-      responsable_id: projectData.responsable_id,
-      prestataire_externe: projectData.prestataire_externe,
-      nouvelles_fonctionnalites: projectData.nouvelles_fonctionnalites,
-      avantages: projectData.avantages,
       departement: projectData.departement,
       attachments: projectData.attachments,
       updated_at: new Date()
@@ -769,7 +760,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const daysUntilDeadline = project.date_fin ? getDaysUntilDeadline(project.date_fin) : null;
   const showDeadlineAlert = (isApproachingDeadline || isOverdue) && project.taches.some(t => t.etat !== 'cloturee');
   const alertMessage = daysUntilDeadline !== null ? getAlertMessage(daysUntilDeadline) : '';
-  const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info';
+  const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info' as const;
   const alertColorClasses = getAlertColorClasses(alertSeverity);
 
   // Get project manager
@@ -1336,7 +1327,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
         task={editingTask}
         projectId={project.id}
-        availableUsers={projectMembers.map(member => member.user!).filter(Boolean)}
+        availableUsers={projectMembers.map(member => member.user!).filter(Boolean) as UserType[]}
       />
 
       {/* Project Edit Modal */}
