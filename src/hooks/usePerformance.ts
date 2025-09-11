@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PerformanceService, UserPerformanceData, DepartmentPerformanceData, ProjectPerformanceData } from '../services/performanceService';
+import PerformanceCache from '../services/performanceCache';
 import { Project, User as UserType } from '../types';
 
 interface UsePerformanceProps {
@@ -30,11 +31,25 @@ export const usePerformance = ({
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const refreshData = useCallback(async () => {
+  const refreshData = useCallback(async (forceRefresh = false) => {
     if (projects.length === 0 || users.length === 0) {
       console.log('⚠️ Pas de projets ou d\'utilisateurs, arrêt du chargement');
       setLoading(false);
       return;
+    }
+
+    // Vérifier le cache d'abord (sauf si forceRefresh)
+    if (!forceRefresh) {
+      const cachedData = PerformanceCache.getFromCache(projects, users);
+      if (cachedData) {
+        console.log('📦 Utilisation des données en cache');
+        setUserPerformance(cachedData.userPerformance);
+        setDepartmentPerformance(cachedData.departmentPerformance);
+        setProjectPerformance(cachedData.projectPerformance);
+        setLastUpdated(new Date(cachedData.timestamp));
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -43,7 +58,8 @@ export const usePerformance = ({
 
       console.log('🔄 Actualisation des données de performance...', {
         projectsCount: projects.length,
-        usersCount: users.length
+        usersCount: users.length,
+        forceRefresh
       });
       const startTime = Date.now();
 
@@ -54,6 +70,15 @@ export const usePerformance = ({
         departmentPerformance: data.departmentPerformance.length,
         projectPerformance: data.projectPerformance.length
       });
+
+      // Sauvegarder en cache
+      PerformanceCache.saveToCache(
+        data.userPerformance,
+        data.departmentPerformance,
+        data.projectPerformance,
+        projects,
+        users
+      );
 
       setUserPerformance(data.userPerformance);
       setDepartmentPerformance(data.departmentPerformance);
@@ -67,8 +92,15 @@ export const usePerformance = ({
       console.error('❌ Erreur lors de l\'actualisation des données de performance:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
       
-      // En cas d'erreur, on garde les données existantes mais on affiche l'erreur
-      if (userPerformance.length === 0 && departmentPerformance.length === 0 && projectPerformance.length === 0) {
+      // En cas d'erreur, essayer de récupérer du cache
+      const cachedData = PerformanceCache.getFromCache(projects, users);
+      if (cachedData) {
+        console.log('📦 Utilisation du cache en cas d\'erreur');
+        setUserPerformance(cachedData.userPerformance);
+        setDepartmentPerformance(cachedData.departmentPerformance);
+        setProjectPerformance(cachedData.projectPerformance);
+        setLastUpdated(new Date(cachedData.timestamp));
+      } else if (userPerformance.length === 0 && departmentPerformance.length === 0 && projectPerformance.length === 0) {
         setUserPerformance([]);
         setDepartmentPerformance([]);
         setProjectPerformance([]);

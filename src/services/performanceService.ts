@@ -59,9 +59,8 @@ export class PerformanceService {
               id,
               nom,
               etat,
-              date_creation,
+              created_at,
               date_realisation,
-              date_fin_prevue,
               projet_id,
               projets(
                 id,
@@ -97,14 +96,14 @@ export class PerformanceService {
         // Temps moyen de completion (pour les tâches terminées)
         const completedTasksWithDates = tasks.filter(t => 
           t.etat === 'cloturee' && 
-          t.date_creation && 
+          t.created_at && 
           t.date_realisation
         );
         
         let averageTaskCompletionTime = 0;
         if (completedTasksWithDates.length > 0) {
           const totalDays = completedTasksWithDates.reduce((sum, task) => {
-            const start = new Date(task.date_creation);
+            const start = new Date(task.created_at);
             const end = new Date(task.date_realisation);
             return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
           }, 0);
@@ -113,7 +112,7 @@ export class PerformanceService {
 
         // Dernière activité
         const lastActivityDate = tasks.length > 0 
-          ? new Date(Math.max(...tasks.map(t => new Date(t.date_creation).getTime())))
+          ? new Date(Math.max(...tasks.map(t => new Date(t.created_at).getTime())))
           : null;
 
         performanceData.push({
@@ -223,9 +222,8 @@ export class PerformanceService {
             id,
             nom,
             etat,
-            date_creation,
+            created_at,
             date_realisation,
-            date_fin_prevue,
             budget_estime,
             budget_reel
           `)
@@ -283,7 +281,7 @@ export class PerformanceService {
 
         // Dernière activité
         const lastActivityDate = tasks.length > 0 
-          ? new Date(Math.max(...tasks.map(t => new Date(t.date_creation).getTime())))
+          ? new Date(Math.max(...tasks.map(t => new Date(t.created_at).getTime())))
           : null;
 
         performanceData.push({

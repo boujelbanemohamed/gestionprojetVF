@@ -166,7 +166,7 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshData();
+      await refreshData(true); // Force refresh, ignore cache
     } finally {
       setIsRefreshing(false);
     }
