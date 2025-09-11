@@ -226,7 +226,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   const filteredTasks = project.taches.filter(task => {
     const matchesStatus = filterStatus === 'all' || task.etat === filterStatus;
-    const matchesMember = filterMember === 'all' || task.utilisateurs.some(user => (user.id === filterMember));
+    const hasUsers = Array.isArray(task.utilisateurs) && task.utilisateurs.length > 0;
+    const matchesMember =
+      filterMember === 'all' || (hasUsers && task.utilisateurs.some(user => user.id === filterMember));
     return matchesStatus && matchesMember;
   });
 
@@ -1142,6 +1144,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         onClose={() => {
           setIsTaskModalOpen(false);
           setEditingTask(undefined);
+          // Réinitialiser le filtre pour éviter de masquer les tâches après assignation
+          setFilterMember('all');
         }}
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
         task={editingTask}
