@@ -91,8 +91,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Hook pour gérer les membres du projet
   const { 
-    members: projectMembers, 
+    members: projectMembers,
     loading: membersLoading, 
+    error: membersError,
+    loadMembers,
     addMember, 
     removeMember, 
     getMemberCount,
