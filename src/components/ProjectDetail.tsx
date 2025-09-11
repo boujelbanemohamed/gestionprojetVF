@@ -126,6 +126,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   console.log('ProjectDetail - membersLoading:', membersLoading);
   console.log('ProjectDetail - getMemberCount():', getMemberCount());
 
+  // État de chargement global pour s'assurer que toutes les données sont prêtes
+  const isDataReady = !membersLoading && !budgetLoading;
+
   // Check if project has budget defined
   const hasBudget = project.budget_initial && project.devise;
 
@@ -139,9 +142,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     
     if (!hasBudget) {
       setExpensesLoading(false);
+      setBudgetLoading(false);
       return;
     }
 
+    setBudgetLoading(true);
     try {
       const { data, error } = await supabase
         .from('projet_depenses')
@@ -189,6 +194,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // State for budget summary
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
+  const [budgetLoading, setBudgetLoading] = useState(true);
 
   // Calculate budget summary when expenses change
   useEffect(() => {
@@ -206,6 +212,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     } else {
       setBudgetSummary(null);
     }
+    setBudgetLoading(false);
   }, [project.budget_initial, project.devise, projectExpenses]);
 
   const stats = getProjectStats(localTasks);
@@ -931,27 +938,35 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           </div>
 
           {/* Budget Progress */}
-          {hasBudget && budgetSummary ? (
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Progression Budget</h3>
-                <span className="text-lg font-bold text-gray-900">{budgetSummary.pourcentage_consommation.toFixed(1)}%</span>
+          {hasBudget ? (
+            budgetLoading ? (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-4">
-                <div 
-                  className={`h-4 rounded-full transition-all duration-500 ${getBudgetProgressColor(budgetSummary.pourcentage_consommation)}`}
-                  style={{ width: `${Math.min(budgetSummary.pourcentage_consommation, 100)}%` }}
-                />
+            ) : budgetSummary ? (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Progression Budget</h3>
+                  <span className="text-lg font-bold text-gray-900">{budgetSummary.pourcentage_consommation.toFixed(1)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-4">
+                  <div 
+                    className={`h-4 rounded-full transition-all duration-500 ${getBudgetProgressColor(budgetSummary.pourcentage_consommation)}`}
+                    style={{ width: `${Math.min(budgetSummary.pourcentage_consommation, 100)}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-sm text-gray-600">
+                  {formatCurrency(budgetSummary.total_depenses, budgetSummary.devise_budget)} sur {formatCurrency(budgetSummary.budget_initial, budgetSummary.devise_budget)} dépensés
+                  {budgetSummary.montant_restant < 0 && (
+                    <span className="text-red-600 font-medium ml-2">
+                      (Dépassé de {formatCurrency(Math.abs(budgetSummary.montant_restant), budgetSummary.devise_budget)})
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="mt-2 text-sm text-gray-600">
-                {formatCurrency(budgetSummary.total_depenses, budgetSummary.devise_budget)} sur {formatCurrency(budgetSummary.budget_initial, budgetSummary.devise_budget)} dépensés
-                {budgetSummary.montant_restant < 0 && (
-                  <span className="text-red-600 font-medium ml-2">
-                    (Dépassé de {formatCurrency(Math.abs(budgetSummary.montant_restant), budgetSummary.devise_budget)})
-                  </span>
-                )}
-              </div>
-            </div>
+            ) : null
           ) : (
             <div className="bg-white rounded-xl shadow-sm p-6 border-2 border-dashed border-gray-300">
               <div className="text-center py-4">
@@ -986,7 +1001,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
           </div>
           
           <div className="p-6">
-            {membersLoading ? (
+            {!isDataReady ? (
               <div className="flex justify-center py-8">
                 <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
               </div>
