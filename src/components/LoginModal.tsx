@@ -25,20 +25,19 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, users
     setIsLoading(true);
 
     try {
-      const { user: authUser } = await signIn(email, password);
-      if (authUser) {
-        // L'utilisateur sera automatiquement récupéré par le hook useAuth
-        // On attend un peu pour que le hook se mette à jour
-        setTimeout(() => {
-          onClose();
-          setEmail('');
-          setPassword('');
-        }, 100);
-      }
+      await signIn(email, password);
+      
+      // Attendre un peu pour que l'état global se mette à jour
+      setTimeout(() => {
+        onClose();
+        setEmail('');
+        setPassword('');
+        setIsLoading(false);
+      }, 500);
+      
     } catch (err) {
       console.error('Erreur de connexion:', err);
       setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la connexion');
-    } finally {
       setIsLoading(false);
     }
   };

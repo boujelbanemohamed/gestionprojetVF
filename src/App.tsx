@@ -68,6 +68,9 @@ function App() {
     // Show login modal if not authenticated
     if (!authLoading && !currentUser) {
       setIsLoginModalOpen(true);
+    } else if (!authLoading && currentUser) {
+      // Fermer le modal si l'utilisateur est connecté
+      setIsLoginModalOpen(false);
     }
 
     return unsubscribe;
@@ -104,11 +107,26 @@ function App() {
     );
   };
 
-  const handleLogout = () => {
-    Analytics.track('user_logout', {}, currentUser?.id);
-    setIsLoginModalOpen(true);
-    Router.navigate('dashboard');
-    NotificationService.info('Déconnexion', 'Vous avez été déconnecté avec succès');
+  const handleLogout = async () => {
+    try {
+      Analytics.track('user_logout', {}, currentUser?.id);
+      
+      // Déconnexion via Supabase
+      await signOut();
+      
+      // Forcer l'affichage du modal de connexion
+      setIsLoginModalOpen(true);
+      
+      // Naviguer vers le dashboard (page de connexion)
+      Router.navigate('dashboard');
+      
+      NotificationService.info('Déconnexion', 'Vous avez été déconnecté avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      // Forcer la déconnexion même en cas d'erreur
+      setIsLoginModalOpen(true);
+      Router.navigate('dashboard');
+    }
   };
 
   const handleProfileUpdate = (updatedUser: AuthUser) => {
