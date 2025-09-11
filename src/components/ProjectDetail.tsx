@@ -337,6 +337,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     // Réinitialiser le filtre membre pour s'assurer que la nouvelle tâche est visible
     setFilterMember('all');
     
+    // Si des utilisateurs ont été assignés à la nouvelle tâche, forcer un refresh des membres
+    if (taskData.utilisateurs && taskData.utilisateurs.length > 0) {
+      console.log('New task with users assigned, forcing member refresh');
+      loadMembers(true); // forceRefresh = true
+    }
+    
     onUpdateProject(updatedProject);
   };
 
@@ -421,6 +427,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
     // Réinitialiser le filtre membre pour s'assurer que la tâche mise à jour est visible
     setFilterMember('all');
+    
+    // Si des utilisateurs ont été assignés/désassignés, forcer un refresh des membres
+    if (userAssignmentChanged) {
+      console.log('User assignment changed, forcing member refresh');
+      loadMembers(true); // forceRefresh = true
+    }
     
     onUpdateProject(updatedProject);
   };
@@ -621,9 +633,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Handle task update from details modal (for attachment deletion)
   const handleUpdateTaskFromDetails = (updatedTask: Task) => {
-    const updatedTasks = project.taches.map(task =>
+    const updatedTasks = localTasks.map(task =>
       task.id === updatedTask.id ? updatedTask : task
     );
+
+    // Mettre à jour l'état local immédiatement
+    setLocalTasks(updatedTasks);
 
     const updatedProject = {
       ...project,
