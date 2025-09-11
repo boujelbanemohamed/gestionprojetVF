@@ -834,16 +834,26 @@ export class SupabaseService {
 
   // Check if user has tasks in project
   static async userHasTasksInProject(projetId: string, userId: string): Promise<boolean> {
+    // First, get all task IDs for the project
+    const { data: tasks, error: tasksError } = await supabase
+      .from('taches')
+      .select('id')
+      .eq('projet_id', projetId);
+
+    if (tasksError) throw tasksError;
+
+    if (!tasks || tasks.length === 0) {
+      return false;
+    }
+
+    const taskIds = tasks.map(task => task.id);
+
+    // Then check if user is assigned to any of these tasks
     const { data, error } = await supabase
       .from('tache_utilisateurs')
       .select('id')
       .eq('user_id', userId)
-      .in('tache_id', 
-        supabase
-          .from('taches')
-          .select('id')
-          .eq('projet_id', projetId)
-      )
+      .in('tache_id', taskIds)
       .limit(1);
 
     if (error) throw error;
