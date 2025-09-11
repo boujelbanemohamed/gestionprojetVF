@@ -223,9 +223,7 @@ export class PerformanceService {
             nom,
             etat,
             created_at,
-            date_realisation,
-            budget_estime,
-            budget_reel
+            date_realisation
           `)
           .eq('projet_id', project.id);
 
@@ -256,13 +254,23 @@ export class PerformanceService {
         const memberCount = projectMembers?.length || 0;
         const responsibleUser = project.responsable_id ? users.find(u => u.id === project.responsable_id) : undefined;
 
-        // Utilisation du budget
+        // Utilisation du budget (calculée à partir des dépenses du projet)
         let budgetUtilization = 0;
-        if (project.budget_initial && tasks.length > 0) {
-          const totalBudgetUsed = tasks.reduce((sum, task) => {
-            return sum + (task.budget_reel || 0);
-          }, 0);
-          budgetUtilization = Math.round((totalBudgetUsed / project.budget_initial) * 100);
+        if (project.budget_initial) {
+          // Récupérer les dépenses du projet depuis la table projet_depenses
+          const { data: expenses, error: expensesError } = await supabase
+            .from('projet_depenses')
+            .select('montant, devise, montant_converti')
+            .eq('projet_id', project.id);
+
+          if (!expensesError && expenses) {
+            const totalExpenses = expenses.reduce((sum, expense) => {
+              // Utiliser montant_converti si disponible, sinon montant
+              const amount = expense.montant_converti || expense.montant;
+              return sum + amount;
+            }, 0);
+            budgetUtilization = Math.round((totalExpenses / project.budget_initial) * 100);
+          }
         }
 
         // Statut de deadline
