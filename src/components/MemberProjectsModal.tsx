@@ -98,7 +98,7 @@ const MemberProjectsModal: React.FC<MemberProjectsModalProps> = ({
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
             <div className="flex items-center space-x-4 mb-6">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
-                {member.getFirstChar(prenom)}{member.getFirstChar(nom)}
+                {getUserInitials(member.prenom, member.nom)}
               </div>
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
