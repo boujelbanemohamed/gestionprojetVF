@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Project, User, Department, AuthUser } from './types';
 import { SupabaseService } from './services/supabaseService';
 import { useAuth, useDepartments, useUsers, useProjects } from './hooks/useSupabase';
+import { useProjectMembers } from './hooks/useProjectMembers';
 import { PermissionService } from './utils/permissions';
 import { Router, RouteConfig } from './utils/router';
 import { NotificationService } from './utils/notifications';
@@ -43,6 +44,9 @@ function App() {
   const { departments, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
   const { users, updateUser, deleteUser } = useUsers();
   const { projects, createProject, updateProject, deleteProject } = useProjects();
+  
+  // Get project members for the current project
+  const { members: projectMembers } = useProjectMembers(currentProject?.id || '');
   
   const [currentRoute, setCurrentRoute] = useState<RouteConfig>(Router.getCurrentRoute());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -596,7 +600,7 @@ function App() {
           project={currentProject}
           onBack={handleBackToDashboard}
           onUpdateProject={handleUpdateProject}
-          availableUsers={users}
+          availableUsers={projectMembers.map(member => member.user!).filter(Boolean) as User[]}
           departments={departments}
           currentUser={currentUser}
           meetingMinutes={meetingMinutes}

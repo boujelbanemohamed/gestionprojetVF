@@ -320,7 +320,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Get current user for history tracking (in a real app, this would come from authentication)
   const getCurrentUser = (): UserType => {
-    return currentUser;
+    return currentUser as unknown as UserType;
   };
 
   // Project lifecycle functions
@@ -430,10 +430,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     if (oldTask.description !== taskData.description) changes.push('description');
     if (oldTask.scenario_execution !== taskData.scenario_execution) changes.push('scénario d\'exécution');
     if (oldTask.criteres_acceptation !== taskData.criteres_acceptation) changes.push('critères d\'acceptation');
-    if (oldTask.date_realisation && taskData.date_realisation && 
-        oldTask.date_realisation.getTime() !== taskData.date_realisation.getTime()) {
-      changes.push('date de réalisation');
-      newHistory.push(addDateChangedHistory(oldTask, currentUser, oldTask.date_realisation, taskData.date_realisation));
+    if (oldTask.date_realisation && taskData.date_realisation) {
+      const oldDate = oldTask.date_realisation instanceof Date ? oldTask.date_realisation : new Date(oldTask.date_realisation);
+      const newDate = taskData.date_realisation instanceof Date ? taskData.date_realisation : new Date(taskData.date_realisation);
+      
+      if (oldDate.getTime() !== newDate.getTime()) {
+        changes.push('date de réalisation');
+        newHistory.push(addDateChangedHistory(oldTask, currentUser, oldTask.date_realisation, taskData.date_realisation));
+      }
     }
 
     // Check status change
@@ -769,8 +773,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const daysUntilDeadline = project.date_fin ? getDaysUntilDeadline(project.date_fin) : null;
   const showDeadlineAlert = (isApproachingDeadline || isOverdue) && project.taches.some(t => t.etat !== 'cloturee');
   const alertMessage = daysUntilDeadline !== null ? getAlertMessage(daysUntilDeadline) : '';
-  const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info';
-  const alertColorClasses = getAlertColorClasses(alertSeverity);
+  const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info' as const;
+  const alertColorClasses = getAlertColorClasses(alertSeverity as any);
 
   // Get project manager
   const projectManager = project.responsable_id 
@@ -1361,7 +1365,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         isOpen={isMembersModalOpen}
         onClose={() => setIsMembersModalOpen(false)}
         projectName={project.nom}
-        members={projectMembers}
+        members={projectMembers.map(member => member.user!).filter(Boolean) as UserType[]}
       />
 
       {/* Task Comments Modal */}
@@ -1418,7 +1422,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       }}
       project={project}
       onUpdateProject={onUpdateProject}
-      currentUser={currentUser}
+      currentUser={currentUser as any}
       onExpenseAdded={async () => {
         // Recharger les dépenses quand une dépense est ajoutée
         await loadExpenses();
@@ -1435,7 +1439,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       projectMembers={projectMembers}
       onAddMember={addMember}
       onRemoveMember={removeMember}
-      currentUser={currentUser}
+      currentUser={currentUser as any}
     />
 
     {/* Project Info Modal */}
