@@ -120,6 +120,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // Check if project has budget defined
   const hasBudget = project.budget_initial && project.devise;
 
+  // Filtrer les utilisateurs pour ne garder que les membres du projet
+  const projectMemberUsers = availableUsers.filter(user => 
+    projectMembers.some(member => member.user_id === user.id)
+  );
+
   // Charger les tâches depuis Supabase si elles ne sont pas disponibles
   useEffect(() => {
     const loadTasksFromSupabase = async () => {
@@ -1079,7 +1084,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                     </span>
                   )}
                 </h3>
-                {project.statut === 'actif' && availableUsers.length > 0 && (
+                {project.statut === 'actif' && projectMemberUsers.length > 0 && (
                   <button
                     onClick={() => {
                       setEditingTask(undefined);
@@ -1231,7 +1236,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                 <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">Aucune tâche</h4>
                 <p className="text-gray-500 mb-4">Commencez par créer votre première tâche</p>
-                {availableUsers.length > 0 && project.statut === 'actif' ? (
+                {projectMemberUsers.length > 0 && project.statut === 'actif' ? (
                   <button
                     onClick={() => setIsTaskModalOpen(true)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -1327,7 +1332,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
         task={editingTask}
         projectId={project.id}
-        availableUsers={availableUsers}
+        availableUsers={projectMemberUsers}
       />
 
       {/* Project Edit Modal */}
