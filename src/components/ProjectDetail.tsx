@@ -25,6 +25,69 @@ import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';
 import { checkCanCloseProject, checkCanReopenProject } from '../utils/permissions';
 import { useProjectMembers } from '../hooks/useProjectMembers';
 import { getUserInitials } from '../utils/stringUtils';
+
+// Fonction utilitaire pour sécuriser l'accès aux propriétés d'un membre
+const getMemberDisplayData = (member: ProjetMembre) => {
+  const user = member.user;
+  
+  if (!user) {
+    return {
+      id: member.user_id,
+      prenom: '',
+      nom: '',
+      email: '',
+      role: member.role || 'membre',
+      departement: '',
+      fonction: '',
+      isProjectManager: false,
+      initials: '??'
+    };
+  }
+  
+  return {
+    id: user.id || member.user_id,
+    prenom: user.prenom || '',
+    nom: user.nom || '',
+    email: user.email || '',
+    role: member.role || 'membre',
+    departement: user.departement || '',
+    fonction: user.fonction || '',
+    isProjectManager: false, // sera calculé séparément
+    initials: getUserInitials(user.prenom, user.nom)
+  };
+};
+
+// Fonction pour convertir ProjetMembre en UserType pour les modals
+const convertMembersToUsers = (members: ProjetMembre[]): UserType[] => {
+  return members.map(member => {
+    const user = member.user;
+    if (!user) {
+      return {
+        id: member.user_id,
+        nom: '',
+        prenom: '',
+        email: '',
+        fonction: '',
+        departement: '',
+        role: 'UTILISATEUR' as const,
+        created_at: new Date().toISOString()
+      };
+    }
+    
+    return {
+      id: user.id || member.user_id,
+      nom: user.nom || '',
+      prenom: user.prenom || '',
+      email: user.email || '',
+      fonction: user.fonction || '',
+      departement: user.departement || '',
+      role: (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'UTILISATEUR') 
+        ? user.role 
+        : 'UTILISATEUR' as const,
+      created_at: user.created_at || new Date().toISOString()
+    };
+  });
+};
 import { 
   createHistoryEntry, 
   addTaskCreatedHistory, 
@@ -120,14 +183,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Hook pour gérer les membres du projet
   const { 
-    members: projectMembers,
+    members: projectMembers, 
     loading: membersLoading, 
-    error: membersError,
-    loadMembers,
+    loadMembers, 
     addMember, 
     removeMember, 
-    getMemberCount,
-    isMember 
+    getMemberCount
   } = useProjectMembers(project.id);
 
   // Debug logs pour les membres
@@ -321,6 +382,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
   // Get current user for history tracking (in a real app, this would come from authentication)
   const getCurrentUser = (): UserType => {
+    if (!currentUser) {
+      throw new Error('Utilisateur non connecté');
+    }
     return currentUser;
   };
 
@@ -770,7 +834,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const daysUntilDeadline = project.date_fin ? getDaysUntilDeadline(project.date_fin) : null;
   const showDeadlineAlert = (isApproachingDeadline || isOverdue) && project.taches.some(t => t.etat !== 'cloturee');
   const alertMessage = daysUntilDeadline !== null ? getAlertMessage(daysUntilDeadline) : '';
-  const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'info';
+  const alertSeverity = daysUntilDeadline !== null ? getAlertSeverity(daysUntilDeadline) : 'warning';
   const alertColorClasses = getAlertColorClasses(alertSeverity);
 
   // Get project manager
@@ -781,7 +845,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // Réinitialiser automatiquement le filtre membre s'il ne correspond à aucun membre courant
   useEffect(() => {
     if (filterMember === 'all') return;
-    const validUserIds = projectMembers.map(m => m.user?.id || m.user_id).filter(Boolean);
+    const validUserIds = projectMembers.map(m => {
+      const memberData = getMemberDisplayData(m);
+      return memberData.id;
+    }).filter(Boolean);
     if (!validUserIds.includes(filterMember)) {
       setFilterMember('all');
     }
@@ -1021,24 +1088,22 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {projectMembers.map(member => {
-                    const user = member.user;
-                    if (!user) return null;
-                    
-                    const isProjectManager = user.id === project.responsable_id;
+                    const memberData = getMemberDisplayData(member);
+                    const isProjectManager = memberData.id === project.responsable_id;
                     const userTasks = project.taches.filter(task => 
-                      task.utilisateurs.some(u => u.id === user.id)
+                      task.utilisateurs.some(u => u.id === memberData.id)
                     );
                     
                     return (
                       <div key={member.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            {getUserInitials(user.prenom, user.nom)}
+                            {memberData.initials}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
                               <h4 className="text-sm font-semibold text-gray-900 truncate">
-                                {user.prenom || ''} {user.nom || ''}
+                                {memberData.prenom} {memberData.nom}
                               </h4>
                             {isProjectManager && (
                               <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
@@ -1046,18 +1111,20 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                               </span>
                             )}
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                              {member.role}
+                              {memberData.role}
                             </span>
                           </div>
                           <div className="flex items-center space-x-3 text-xs text-gray-500 mt-1">
-                            <div className="flex items-center space-x-1">
-                              <Building size={12} />
-                              <span>{user.departement}</span>
-                            </div>
-                            {user.fonction && (
+                            {memberData.departement && (
+                              <div className="flex items-center space-x-1">
+                                <Building size={12} />
+                                <span>{memberData.departement}</span>
+                              </div>
+                            )}
+                            {memberData.fonction && (
                               <div className="flex items-center space-x-1">
                                 <FileText size={12} />
-                                <span>{user.fonction}</span>
+                                <span>{memberData.fonction}</span>
                               </div>
                             )}
                           </div>
@@ -1163,11 +1230,18 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 >
                   <option value="all">Tous les membres</option>
-                  {projectMembers.map(member => (
-                    <option key={member.id} value={member.user?.id || member.user_id}>
-                      {member.user ? `${member.user.prenom || ''} ${member.user.nom || ''}`.trim() : 'Utilisateur inconnu'}
-                    </option>
-                  ))}
+                  {projectMembers.map(member => {
+                    const memberData = getMemberDisplayData(member);
+                    const displayName = memberData.prenom && memberData.nom 
+                      ? `${memberData.prenom} ${memberData.nom}`.trim()
+                      : memberData.prenom || memberData.nom || 'Utilisateur inconnu';
+                    
+                    return (
+                      <option key={member.id} value={memberData.id}>
+                        {displayName}
+                      </option>
+                    );
+                  })}
                 </select>
 
                 {hasActiveFilters && (
@@ -1206,8 +1280,17 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                     <User size={14} />
                     <span>
                       {(() => {
-                        const selectedMember = projectMembers.find(m => (m.user?.id || m.user_id) === filterMember);
-                        return selectedMember?.user ? `${selectedMember.user.prenom || ''} ${selectedMember.user.nom || ''}`.trim() : 'Utilisateur inconnu';
+                        const selectedMember = projectMembers.find(m => {
+                          const memberData = getMemberDisplayData(m);
+                          return memberData.id === filterMember;
+                        });
+                        
+                        if (!selectedMember) return 'Utilisateur inconnu';
+                        
+                        const memberData = getMemberDisplayData(selectedMember);
+                        return memberData.prenom && memberData.nom 
+                          ? `${memberData.prenom} ${memberData.nom}`.trim()
+                          : memberData.prenom || memberData.nom || 'Utilisateur inconnu';
                       })()}
                     </span>
                     <button
@@ -1365,7 +1448,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
         isOpen={isMembersModalOpen}
         onClose={() => setIsMembersModalOpen(false)}
         projectName={project.nom}
-        members={projectMembers}
+        members={convertMembersToUsers(projectMembers)}
       />
 
       {/* Task Comments Modal */}

@@ -38,11 +38,19 @@ export class SupabaseService {
   }
 
   static async getCurrentUser(): Promise<AuthUser | null> {
-    const { data: { user } } = await supabase.auth.getUser();
+    console.log('SupabaseService.getCurrentUser - Début');
     
-    if (!user) return null;
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log('SupabaseService.getCurrentUser - User auth:', user?.id, user?.email);
+    
+    if (!user) {
+      console.log('SupabaseService.getCurrentUser - Aucun utilisateur auth');
+      return null;
+    }
 
     try {
+      console.log('SupabaseService.getCurrentUser - Recherche du profil pour user.id:', user.id);
+      
       const { data: profile, error } = await supabase
         .from('users')
         .select(`
@@ -52,8 +60,11 @@ export class SupabaseService {
         .eq('id', user.id)
         .single();
 
+      console.log('SupabaseService.getCurrentUser - Résultat requête:', { profile, error });
+
       if (error) {
         console.error('Erreur lors de la récupération du profil utilisateur:', error);
+        console.log('SupabaseService.getCurrentUser - Retour utilisateur basique');
         // Retourner un utilisateur basique si le profil n'existe pas
         return {
           id: user.id,
@@ -67,6 +78,8 @@ export class SupabaseService {
         };
       }
 
+      console.log('SupabaseService.getCurrentUser - Profil trouvé:', profile);
+      
       return {
         id: profile.id,
         nom: profile.nom,
@@ -79,6 +92,7 @@ export class SupabaseService {
       };
     } catch (error) {
       console.error('Erreur lors de la récupération du profil utilisateur:', error);
+      console.log('SupabaseService.getCurrentUser - Retour null à cause de l\'erreur');
       return null;
     }
   }

@@ -123,6 +123,8 @@ export function useAuth() {
 
   // Fonction pour traiter une session avec AbortController
   const handleSession = useCallback(async (session: Session | null) => {
+    console.log('handleSession - Début avec session:', session?.user?.email);
+    
     // Annuler la requête précédente si elle existe
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -134,24 +136,36 @@ export function useAuth() {
 
     if (session?.user) {
       try {
-        console.log('Récupération du profil utilisateur pour:', session.user.email);
+        console.log('handleSession - Récupération du profil utilisateur pour:', session.user.email);
         const currentUser = await SupabaseService.getCurrentUser();
+        console.log('handleSession - Utilisateur récupéré:', currentUser);
         
         if (!signal.aborted) {
+          console.log('handleSession - Mise à jour de l\'état utilisateur');
           setUser(currentUser);
           setLoading(false);
+          console.log('handleSession - État mis à jour, loading: false');
+        } else {
+          console.log('handleSession - Requête annulée');
         }
       } catch (error) {
         if (!signal.aborted) {
-          console.error('Erreur lors de la récupération du profil utilisateur:', error);
+          console.error('handleSession - Erreur lors de la récupération du profil utilisateur:', error);
           setUser(null);
           setLoading(false);
+          console.log('handleSession - Erreur, état mis à jour, loading: false');
+        } else {
+          console.log('handleSession - Erreur mais requête annulée');
         }
       }
     } else {
       if (!signal.aborted) {
+        console.log('handleSession - Aucune session, mise à jour état');
         setUser(null);
         setLoading(false);
+        console.log('handleSession - État mis à jour, loading: false');
+      } else {
+        console.log('handleSession - Aucune session mais requête annulée');
       }
     }
   }, []);
