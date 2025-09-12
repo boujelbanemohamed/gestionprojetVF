@@ -6,6 +6,7 @@ import { PermissionService } from '../utils/permissions';
 import CreateMemberModal from './CreateMemberModal';
 import ChangeRoleModal from './ChangeRoleModal';
 import MemberProjectsModal from './MemberProjectsModal';
+import AddMemberToProjectModal from './AddMemberToProjectModal';
 
 interface MembersManagementProps {
   members: UserType[];
@@ -16,6 +17,7 @@ interface MembersManagementProps {
   onUpdateMember: (id: string, member: Omit<UserType, 'id' | 'created_at'>) => void;
   onDeleteMember: (id: string) => void;
   onManageDepartments: () => void;
+  onAddMemberToProject: (projectId: string, userId: string, addedBy: string, role?: 'membre' | 'responsable') => Promise<void>;
   currentUser: AuthUser;
 }
 
@@ -28,6 +30,7 @@ const MembersManagement: React.FC<MembersManagementProps> = ({
   onUpdateMember,
   onDeleteMember,
   onManageDepartments,
+  onAddMemberToProject,
   currentUser
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -39,6 +42,8 @@ const MembersManagement: React.FC<MembersManagementProps> = ({
   const [memberToChangeRole, setMemberToChangeRole] = useState<UserType | undefined>();
   const [selectedMemberForProjects, setSelectedMemberForProjects] = useState<UserType | undefined>();
   const [isMemberProjectsModalOpen, setIsMemberProjectsModalOpen] = useState(false);
+  const [selectedMemberForProject, setSelectedMemberForProject] = useState<UserType | undefined>();
+  const [isAddToProjectModalOpen, setIsAddToProjectModalOpen] = useState(false);
 
   const availableDepartments = Array.from(new Set(members.map(m => m.departement))).sort();
 
@@ -126,6 +131,16 @@ const MembersManagement: React.FC<MembersManagementProps> = ({
   const handleCloseModal = () => {
     setIsCreateModalOpen(false);
     setEditingMember(undefined);
+  };
+
+  const handleAddToProject = (member: UserType) => {
+    setSelectedMemberForProject(member);
+    setIsAddToProjectModalOpen(true);
+  };
+
+  const handleCloseAddToProjectModal = () => {
+    setIsAddToProjectModalOpen(false);
+    setSelectedMemberForProject(undefined);
   };
 
   const handleChangeRole = (member: UserType) => {
@@ -519,6 +534,13 @@ const MembersManagement: React.FC<MembersManagementProps> = ({
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => handleAddToProject(member)}
+                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Ajouter à un projet"
+                          >
+                            <Plus size={16} />
+                          </button>
                           {PermissionService.canManageUser(currentUser, member) && (
                             <>
                               <button
@@ -576,6 +598,15 @@ const MembersManagement: React.FC<MembersManagementProps> = ({
         }}
         member={memberToChangeRole}
         onConfirm={handleRoleChange}
+        currentUser={currentUser}
+      />
+
+      <AddMemberToProjectModal
+        isOpen={isAddToProjectModalOpen}
+        onClose={handleCloseAddToProjectModal}
+        member={selectedMemberForProject}
+        projects={projects}
+        onAddToProject={onAddMemberToProject}
         currentUser={currentUser}
       />
     </div>

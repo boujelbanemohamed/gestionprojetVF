@@ -350,6 +350,31 @@ function App() {
     }
   };
 
+  const handleAddMemberToProject = async (projectId: string, userId: string, addedBy: string, role: 'membre' | 'responsable' = 'membre') => {
+    if (!PermissionService.hasPermission(currentUser, 'projects', 'edit')) {
+      alert('Vous n\'avez pas les permissions pour ajouter des membres à un projet');
+      return;
+    }
+
+    try {
+      await SupabaseService.addProjectMember(projectId, userId, addedBy, role);
+      
+      const project = accessibleProjects.find(p => p.id === projectId);
+      const member = users.find(u => u.id === userId);
+      
+      if (project && member) {
+        NotificationService.success(
+          'Membre ajouté au projet',
+          `${member.prenom} ${member.nom} a été ajouté au projet "${project.nom}"`
+        );
+      }
+    } catch (error) {
+      console.error('Error adding member to project:', error);
+      NotificationService.error('Erreur', 'Impossible d\'ajouter le membre au projet');
+      throw error; // Re-throw to let the modal handle the error
+    }
+  };
+
   const handleCreateDepartment = async (departmentData: Omit<Department, 'id' | 'created_at'>) => {
     if (!PermissionService.hasPermission(currentUser, 'departments', 'create')) {
       alert('Vous n\'avez pas les permissions pour créer un département');
@@ -617,6 +642,7 @@ function App() {
           onUpdateMember={handleUpdateMember}
           onDeleteMember={handleDeleteMember}
           onManageDepartments={() => handleNavigate('departments')}
+          onAddMemberToProject={handleAddMemberToProject}
           currentUser={currentUser}
         />
       )}
