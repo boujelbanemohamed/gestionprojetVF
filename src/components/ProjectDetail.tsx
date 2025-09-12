@@ -77,16 +77,30 @@ interface ProjectDetailProps {
 }
 
 const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdateProject, availableUsers, departments, currentUser, meetingMinutes = [] }) => {
+  // All state declarations at the top
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMember, setFilterMember] = useState<string>('all');
   const [localTasks, setLocalTasks] = useState<Task[]>(project.taches || []);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
-
-  // Note: localTasks est maintenant la source de vérité, pas de synchronisation avec project.taches
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedTaskForComments, setSelectedTaskForComments] = useState<Task | undefined>();
+  const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('kanban');
+  const [isTaskDetailsModalOpen, setIsTaskDetailsModalOpen] = useState(false);
+  const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<Task | undefined>();
+  const [isAttachmentsModalOpen, setIsAttachmentsModalOpen] = useState(false);
+  const [isAlertSettingsModalOpen, setIsAlertSettingsModalOpen] = useState(false);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isMembersManagementModalOpen, setIsMembersManagementModalOpen] = useState(false);
+  const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
+  const [isPVModalOpen, setIsPVModalOpen] = useState(false);
+  const [alertThreshold, setAlertThreshold] = useState(DEFAULT_ALERT_THRESHOLD);
+  const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
+  const [expensesLoading, setExpensesLoading] = useState(true);
+  const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
+  const [budgetLoading, setBudgetLoading] = useState(true);
 
   // Charger les tâches depuis Supabase si elles ne sont pas disponibles
   useEffect(() => {
@@ -105,17 +119,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
 
     loadTasksFromSupabase();
   }, [project.id]); // Recharger les tâches à chaque changement de projet
-  const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('kanban');
-  const [isTaskDetailsModalOpen, setIsTaskDetailsModalOpen] = useState(false);
-  const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<Task | undefined>();
-  const [isAttachmentsModalOpen, setIsAttachmentsModalOpen] = useState(false);
-  const [isAlertSettingsModalOpen, setIsAlertSettingsModalOpen] = useState(false);
-  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
-  const [isMembersManagementModalOpen, setIsMembersManagementModalOpen] = useState(false);
-  const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false);
-  const [isPVModalOpen, setIsPVModalOpen] = useState(false);
-  const [alertThreshold, setAlertThreshold] = useState(DEFAULT_ALERT_THRESHOLD);
 
   // Hook pour gérer les membres du projet
   const { 
@@ -138,9 +141,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // Check if project has budget defined
   const hasBudget = project.budget_initial && project.devise;
 
-  // State for real expenses
-  const [projectExpenses, setProjectExpenses] = useState<ProjectExpense[]>([]);
-  const [expensesLoading, setExpensesLoading] = useState(true);
 
   // Load real expenses from Supabase
   const loadExpenses = async () => {
@@ -194,13 +194,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     }
   };
 
+
   useEffect(() => {
     loadExpenses();
   }, [project.id, hasBudget]);
-
-  // State for budget summary
-  const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
-  const [budgetLoading, setBudgetLoading] = useState(true);
 
   // État de chargement global pour s'assurer que toutes les données sont prêtes
   const isDataReady = !membersLoading && !budgetLoading;
