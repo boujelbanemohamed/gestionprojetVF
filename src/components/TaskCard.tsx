@@ -107,7 +107,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, onShowComments, onDe
       <div className="flex justify-between items-start mb-3">
         <h4 
           className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors cursor-pointer pr-8"
-          onClick={onClick}
+          onClick={(e) => {
+            console.log('TaskCard: Click on task name:', task.nom);
+            e.stopPropagation();
+            onClick();
+          }}
         >
           {task.nom}
         </h4>
