@@ -282,6 +282,47 @@ export function useProjects() {
 
   useEffect(() => {
     loadProjects();
+
+    // Écouter les changements de tâches en temps réel
+    const tasksSubscription = supabase
+      .channel('tasks_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'taches'
+        },
+        (payload) => {
+          console.log('Tâche modifiée, rechargement des projets:', payload);
+          // Recharger les projets quand une tâche change
+          loadProjects();
+        }
+      )
+      .subscribe();
+
+    // Écouter les changements de projets en temps réel
+    const projectsSubscription = supabase
+      .channel('projects_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projets'
+        },
+        (payload) => {
+          console.log('Projet modifié, rechargement des projets:', payload);
+          // Recharger les projets quand un projet change
+          loadProjects();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      tasksSubscription.unsubscribe();
+      projectsSubscription.unsubscribe();
+    };
   }, []);
 
   const createProject = async (projectData: any) => {
