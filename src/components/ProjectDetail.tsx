@@ -690,8 +690,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   };
 
   const handleShowTaskDetails = (task: Task) => {
+    console.log('handleShowTaskDetails called for task:', task.nom);
     setSelectedTaskForDetails(task);
     setIsTaskDetailsModalOpen(true);
+    console.log('TaskDetailsModal should be open now');
   };
 
   const handleCloseTaskDetailsModal = () => {
@@ -1372,17 +1374,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       )}
 
       {/* Task Details Modal */}
-      {selectedTaskForDetails && (
-        <TaskDetailsModal
-          isOpen={isTaskDetailsModalOpen}
-          onClose={handleCloseTaskDetailsModal}
-          task={selectedTaskForDetails}
-          onEdit={handleEditTaskFromDetails}
-          onShowComments={handleShowComments}
-          onDelete={handleDeleteTask}
-          onUpdateTask={handleUpdateTaskFromDetails}
-        />
-      )}
+      <TaskDetailsModal
+        isOpen={isTaskDetailsModalOpen && !!selectedTaskForDetails}
+        onClose={handleCloseTaskDetailsModal}
+        task={selectedTaskForDetails!}
+        onEdit={handleEditTaskFromDetails}
+        onShowComments={handleShowComments}
+        onDelete={handleDeleteTask}
+        onUpdateTask={handleUpdateTaskFromDetails}
+      />
     
     {/* Project Alert Settings Modal */}
     <ProjectAlertSettingsModal
