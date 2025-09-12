@@ -11,6 +11,12 @@ export class SupabaseService {
     departement?: string;
     role?: 'SUPER_ADMIN' | 'ADMIN' | 'UTILISATEUR';
   }) {
+    // Vérifier si l'utilisateur existe déjà dans notre table users
+    const userExists = await this.checkUserExists(email);
+    if (userExists) {
+      throw new Error('Un utilisateur avec cet email existe déjà');
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -19,46 +25,65 @@ export class SupabaseService {
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      // Si l'erreur est "User already registered", l'utilisateur existe dans Auth mais pas dans notre table
+      if (error.message?.includes('already registered') || error.message?.includes('User already registered')) {
+        throw new Error('Un utilisateur avec cet email existe déjà dans le système d\'authentification. Veuillez utiliser un email différent ou contacter l\'administrateur.');
+      }
+      throw error;
+    }
 
     // Si l'inscription a réussi et qu'un utilisateur a été créé, l'ajouter à la table users
     if (data.user) {
-      try {
-        // Trouver l'ID du département si le nom est fourni
-        let departement_id: string | undefined;
-        if (userData.departement) {
-          const { data: deptData } = await supabase
-            .from('departements')
-            .select('id')
-            .eq('nom', userData.departement)
-            .single();
-          departement_id = deptData?.id;
-        }
-
-        // Créer l'utilisateur dans la table users
-        const { error: userError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            nom: userData.nom,
-            prenom: userData.prenom,
-            email: email,
-            fonction: userData.fonction || null,
-            departement_id: departement_id || null,
-            role: userData.role || 'UTILISATEUR'
-          });
-
-        if (userError) {
-          console.error('Erreur lors de la création du profil utilisateur:', userError);
-          // Ne pas faire échouer l'inscription si la création du profil échoue
-        }
-      } catch (profileError) {
-        console.error('Erreur lors de la création du profil utilisateur:', profileError);
-        // Ne pas faire échouer l'inscription si la création du profil échoue
-      }
+      return await this.createUserProfile(data.user.id, email, userData);
     }
 
     return data;
+  }
+
+  // Fonction helper pour créer le profil utilisateur
+  private static async createUserProfile(userId: string, email: string, userData: {
+    nom: string;
+    prenom: string;
+    fonction?: string;
+    departement?: string;
+    role?: 'SUPER_ADMIN' | 'ADMIN' | 'UTILISATEUR';
+  }) {
+    try {
+      // Trouver l'ID du département si le nom est fourni
+      let departement_id: string | undefined;
+      if (userData.departement) {
+        const { data: deptData } = await supabase
+          .from('departements')
+          .select('id')
+          .eq('nom', userData.departement)
+          .single();
+        departement_id = deptData?.id;
+      }
+
+      // Créer ou mettre à jour l'utilisateur dans la table users
+      const { error: userError } = await supabase
+        .from('users')
+        .upsert({
+          id: userId,
+          nom: userData.nom,
+          prenom: userData.prenom,
+          email: email,
+          fonction: userData.fonction || null,
+          departement_id: departement_id || null,
+          role: userData.role || 'UTILISATEUR'
+        });
+
+      if (userError) {
+        console.error('Erreur lors de la création du profil utilisateur:', userError);
+        throw userError;
+      }
+
+      return { user: { id: userId } };
+    } catch (profileError) {
+      console.error('Erreur lors de la création du profil utilisateur:', profileError);
+      throw profileError;
+    }
   }
 
   static async signIn(email: string, password: string) {
@@ -74,6 +99,27 @@ export class SupabaseService {
   static async signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+  }
+
+  // Vérifier si un utilisateur existe déjà par email
+  static async checkUserExists(email: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erreur lors de la vérification de l\'utilisateur:', error);
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('Erreur lors de la vérification de l\'utilisateur:', error);
+      return false;
+    }
   }
 
   static async getCurrentUser(): Promise<AuthUser | null> {
