@@ -330,12 +330,21 @@ export class SupabaseService {
 
   static async updateProject(id: string, projectData: any): Promise<Project> {
     // Exclure les tâches car elles sont dans une table séparée
-    const { taches, ...projectDataWithoutTaches } = projectData;
+    const { taches, departement, ...projectDataWithoutTaches } = projectData;
+    
+    // Convertir departement en departement_id si nécessaire
+    let departement_id = projectData.departement_id;
+    if (departement && !departement_id) {
+      // Si departement est fourni comme nom, on doit le convertir en ID
+      // Pour l'instant, on ignore cette conversion car elle nécessite une requête supplémentaire
+      console.warn('departement name provided but departement_id not found, ignoring departement field');
+    }
     
     const { data, error } = await supabase
       .from('projets')
       .update({
         ...projectDataWithoutTaches,
+        departement_id,
         date_debut: formatDateToISOString(projectData.date_debut),
         date_fin: formatDateToISOString(projectData.date_fin)
       })
@@ -835,30 +844,54 @@ export class SupabaseService {
 
   // Check if user has tasks in project
   static async userHasTasksInProject(projetId: string, userId: string): Promise<boolean> {
-    // First, get all task IDs for the project
-    const { data: tasks, error: tasksError } = await supabase
-      .from('taches')
-      .select('id')
-      .eq('projet_id', projetId);
+    try {
+      console.log(`userHasTasksInProject - Vérification pour projet ${projetId}, utilisateur ${userId}`);
+      
+      // First, get all task IDs for the project
+      const { data: tasks, error: tasksError } = await supabase
+        .from('taches')
+        .select('id, nom')
+        .eq('projet_id', projetId);
 
-    if (tasksError) throw tasksError;
+      if (tasksError) {
+        console.error('Erreur lors de la récupération des tâches du projet:', tasksError);
+        throw tasksError;
+      }
 
-    if (!tasks || tasks.length === 0) {
-      return false;
+      console.log(`userHasTasksInProject - Tâches trouvées dans le projet:`, tasks?.length || 0);
+
+      if (!tasks || tasks.length === 0) {
+        console.log('userHasTasksInProject - Aucune tâche dans le projet, utilisateur peut être supprimé');
+        return false;
+      }
+
+      const taskIds = tasks.map(task => task.id);
+      console.log(`userHasTasksInProject - IDs des tâches:`, taskIds);
+
+      // Then check if user is assigned to any of these tasks
+      const { data: assignments, error: assignmentError } = await supabase
+        .from('tache_utilisateurs')
+        .select('id, tache_id')
+        .eq('user_id', userId)
+        .in('tache_id', taskIds);
+
+      if (assignmentError) {
+        console.error('Erreur lors de la vérification des assignations:', assignmentError);
+        throw assignmentError;
+      }
+
+      const hasAssignments = assignments && assignments.length > 0;
+      console.log(`userHasTasksInProject - Assignations trouvées:`, assignments?.length || 0, hasAssignments);
+      
+      if (hasAssignments) {
+        console.log(`userHasTasksInProject - L'utilisateur est assigné aux tâches:`, assignments?.map(a => a.tache_id));
+      }
+
+      return hasAssignments;
+    } catch (error) {
+      console.error('Erreur dans userHasTasksInProject:', error);
+      throw error;
     }
-
-    const taskIds = tasks.map(task => task.id);
-
-    // Then check if user is assigned to any of these tasks
-    const { data, error } = await supabase
-      .from('tache_utilisateurs')
-      .select('id')
-      .eq('user_id', userId)
-      .in('tache_id', taskIds)
-      .limit(1);
-
-    if (error) throw error;
-    return data && data.length > 0;
   }
 
   // Get project member count
