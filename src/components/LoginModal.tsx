@@ -42,13 +42,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, users
     }
   };
 
-  const handleDemoLogin = (role: 'SUPER_ADMIN' | 'ADMIN' | 'UTILISATEUR') => {
-    const demoUser = users.find(u => u.role === role);
-    if (demoUser) {
-      setEmail(demoUser.email);
-      setPassword('TempPassword123!');
-    }
-  };
 
   if (!isOpen) return null;
 
@@ -143,36 +136,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, users
             )}
           </button>
 
-          {/* Demo accounts */}
-          <div className="border-t pt-4">
-            <p className="text-sm text-gray-600 mb-3 text-center">Comptes de démonstration :</p>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('SUPER_ADMIN')}
-                className="w-full px-3 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium"
-              >
-                Super Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('ADMIN')}
-                className="w-full px-3 py-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('UTILISATEUR')}
-                className="w-full px-3 py-2 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
-              >
-                Utilisateur
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-2 text-center">
-              Mot de passe pour tous : password123
-            </p>
-          </div>
         </form>
       </div>
     </div>
