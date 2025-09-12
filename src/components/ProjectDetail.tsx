@@ -1302,9 +1302,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                         key={task.id}
                         task={task}
                         onClick={() => {
-                          console.log('Opening edit modal from task card for task:', task.nom, 'Current filterMember:', filterMember);
-                          setFilterMember('all');
-                          setEditingTask(task);
+                          console.log('Opening task details from task card for task:', task.nom);
+                          handleShowTaskDetails(task);
                         }}
                         onShowComments={handleShowComments}
                         onDelete={handleDeleteTask}
