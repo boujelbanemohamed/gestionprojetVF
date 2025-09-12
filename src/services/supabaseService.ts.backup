@@ -684,6 +684,176 @@ export class SupabaseService {
   }
 
 
+  // Add member to project
+  static async addProjectMember(projetId: string, userId: string, addedBy: string, role: 'membre' | 'responsable' = 'membre'): Promise<ProjetMembre> {
+    // Essayer d'abord avec added_by, puis sans si la colonne n'existe pas
+    let insertData: any = {
+      projet_id: projetId,
+      user_id: userId,
+      role: role
+    };
+
+    // Essayer d'ajouter added_by si possible
+    try {
+      insertData.added_by = addedBy;
+    } catch (e) {
+      console.warn('Colonne added_by non disponible, insertion sans cette colonne');
+    }
+
+    const { data, error } = await supabase
+      .from('projet_membres')
+      .insert(insertData)
+      .select(`
+        *,
+        user:users!projet_membres_user_id_fkey(*)
+      `)
+      .single();
+
+    if (error) {
+      // Si l'erreur est due à added_by, réessayer sans cette colonne
+      if (error.message.includes('added_by')) {
+        console.warn('Retry sans added_by:', error.message);
+        const { data: retryData, error: retryError } = await supabase
+          .from('projet_membres')
+          .insert({
+            projet_id: projetId,
+            user_id: userId,
+            role: role
+          })
+          .select(`
+            *,
+            user:users!projet_membres_user_id_fkey(*)
+          `)
+          .single();
+
+        if (retryError) throw retryError;
+
+        return {
+          id: retryData.id,
+          projet_id: retryData.projet_id,
+          user_id: retryData.user_id,
+          role: retryData.role,
+          added_by: addedBy, // Utiliser la valeur passée en paramètre
+          added_at: new Date(retryData.added_at || retryData.created_at),
+          user: retryData.user ? {
+            id: retryData.user.id,
+            nom: retryData.user.nom,
+            prenom: retryData.user.prenom,
+            fonction: retryData.user.fonction,
+            departement: retryData.user.departement_id ? 'Département' : 'Non assigné',
+            email: retryData.user.email,
+            role: retryData.user.role,
+            created_at: new Date(retryData.user.created_at)
+          } : undefined
+        };
+      }
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      projet_id: data.projet_id,
+      user_id: data.user_id,
+      role: data.role,
+      added_by: data.added_by || addedBy, // Fallback si added_by est null
+      added_at: new Date(data.added_at || data.created_at),
+      user: data.user ? {
+        id: data.user.id,
+        nom: data.user.nom,
+        prenom: data.user.prenom,
+        fonction: data.user.fonction,
+        departement: data.user.departement_id ? 'Département' : 'Non assigné',
+        email: data.user.email,
+        role: data.user.role,
+        created_at: new Date(data.user.created_at)
+      } : undefined
+    };
+  }
+
+  // Remove member from project
+  static async removeProjectMember(projetId: string, userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('projet_membres')
+      .delete()
+      .eq('projet_id', projetId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  }
+
+  // Check if user has tasks in project
+  static async userHasTasksInProject(projetId: string, userId: string): Promise<boolean> {
+    // First, get all task IDs for the project
+    const { data: tasks, error: tasksError } = await supabase
+      .from('taches')
+      .select('id')
+      .eq('projet_id', projetId);
+
+    if (tasksError) throw tasksError;
+
+    if (!tasks || tasks.length === 0) {
+      return false;
+    }
+
+    const taskIds = tasks.map(task => task.id);
+
+    // Then check if user is assigned to any of these tasks
+    const { data, error } = await supabase
+      .from('tache_utilisateurs')
+      .select('id')
+      .eq('user_id', userId)
+      .in('tache_id', taskIds)
+      .limit(1);
+
+    if (error) throw error;
+    return data && data.length > 0;
+  }
+
+  // Get project member count
+  static async getProjectMemberCount(projetId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('projet_membres')
+      .select('*', { count: 'exact', head: true })
+      .eq('projet_id', projetId);
+
+    if (error) throw error;
+    return count || 0;
+  }
+
+  // Récupérer les tâches d'un projet
+  static async getProjectTasks(projetId: string): Promise<Task[]> {
+    try {
+      const { data, error } = await supabase
+        .from('taches')
+        .select(`
+          *,
+          utilisateurs:task_users(
+            user_id,
+            users!task_users_user_id_fkey(
+              id,
+              nom,
+              prenom,
+              email,
+              departement_id
+            )
+          )
+        `)
+        .eq('projet_id', projetId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transformer les données pour correspondre au format Task
+      return data.map(task => ({
+        ...task,
+        utilisateurs: task.utilisateurs?.map((tu: any) => tu.users) || []
+      }));
+    } catch (error) {
+      console.error('Error fetching project tasks:', error);
+      throw error;
+    }
+  }
+
   // Project Members Management
   static async getProjectMembers(projetId: string): Promise<ProjectMember[]> {
     try {

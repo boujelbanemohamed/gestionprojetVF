@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SupabaseService } from '../services/supabaseService';
 import { supabase } from '../services/supabase';
-import { AuthUser } from '../types';
+import { AuthUser, ProjectMember, CreateProjectMemberData, UpdateProjectMemberData } from '../types';
 import type { Session } from '@supabase/supabase-js';
 
 // Types pour le hook générique
@@ -246,6 +246,7 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     try {
+      setLoading(true);
       await SupabaseService.signOut();
       // L'état sera mis à jour par onAuthStateChange
     } catch (error) {
@@ -321,9 +322,90 @@ export function useUsers() {
 // Hook for projects
 export function useProjects() {
   const fetchProjects = useCallback(() => SupabaseService.getProjects(), []);
-  const createProject = useCallback((data: { nom: string; type_projet?: string; description?: string; responsable_id?: string; budget_initial?: number; devise?: string; date_debut?: Date; date_fin?: Date; statut?: string }) => SupabaseService.createProject(data), []);
-  const updateProject = useCallback((id: string, data: Record<string, any>) => SupabaseService.updateProject(id, data), []);
-  const deleteProject = useCallback((id: string) => SupabaseService.deleteProject(id), []);
+  const createProject = useCallback(async (data: { 
+    nom: string; 
+    type_projet?: string; 
+    description?: string; 
+    responsable_id?: string; 
+    budget_initial?: number; 
+    devise?: string; 
+    date_debut?: Date; 
+    date_fin?: Date; 
+    statut?: string;
+    membres?: string[]; // IDs des membres à assigner
+  }) => {
+    const project = await SupabaseService.createProject(data);
+    
+    // Si des membres sont spécifiés, les ajouter au projet
+    if (data.membres && data.membres.length > 0) {
+      for (const userId of data.membres) {
+        try {
+          await SupabaseService.addProjectMember({
+            projet_id: project.id,
+            user_id: userId,
+            role: 'membre',
+            added_by: data.responsable_id || ''
+          });
+        } catch (error) {
+          console.error('Erreur lors de l\'ajout du membre au projet:', error);
+        }
+      }
+    }
+    
+    return project;
+  }, []);
+  
+  const updateProject = useCallback(async (id: string, data: Record<string, any>) => {
+    const project = await SupabaseService.updateProject(id, data);
+    
+    // Si des membres sont spécifiés dans la mise à jour, gérer les changements
+    if (data.membres !== undefined) {
+      try {
+        // Récupérer les membres actuels
+        const currentMembers = await SupabaseService.getProjectMembers(id);
+        const currentMemberIds = currentMembers.map(m => m.user_id);
+        const newMemberIds = data.membres || [];
+        
+        // Supprimer les membres qui ne sont plus dans la liste
+        for (const member of currentMembers) {
+          if (!newMemberIds.includes(member.user_id)) {
+            await SupabaseService.deleteProjectMember(member.id);
+          }
+        }
+        
+        // Ajouter les nouveaux membres
+        for (const userId of newMemberIds) {
+          if (!currentMemberIds.includes(userId)) {
+            await SupabaseService.addProjectMember({
+              projet_id: id,
+              user_id: userId,
+              role: 'membre',
+              added_by: data.responsable_id || ''
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour des membres du projet:', error);
+      }
+    }
+    
+    return project;
+  }, []);
+  
+  const deleteProject = useCallback(async (id: string) => {
+    // Supprimer d'abord tous les membres du projet
+    try {
+      const members = await SupabaseService.getProjectMembers(id);
+      for (const member of members) {
+        await SupabaseService.deleteProjectMember(member.id);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression des membres du projet:', error);
+    }
+    
+    // Puis supprimer le projet
+    await SupabaseService.deleteProject(id);
+  }, []);
 
   const { data: projects, loading, error, refetch, create, update, remove } = useResource(
     fetchProjects,
@@ -340,5 +422,99 @@ export function useProjects() {
     updateProject: update,
     deleteProject: remove,
     refetch
+  };
+}
+
+// Hook for project members
+export function useProjectMembers(projetId: string | null) {
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const fetchMembers = useCallback(async () => {
+    if (!projetId) {
+      setMembers([]);
+      setLoading(false);
+      return;
+    }
+
+    // Annuler la requête précédente si elle existe
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Créer un nouveau AbortController
+    abortControllerRef.current = new AbortController();
+    const { signal } = abortControllerRef.current;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await SupabaseService.getProjectMembers(projetId);
+      
+      if (!signal.aborted) {
+        setMembers(data);
+        setLoading(false);
+      }
+    } catch (error) {
+      if (!signal.aborted) {
+        const errorMessage = error instanceof Error ? error.message : 'Erreur lors du chargement des membres';
+        setError(errorMessage);
+        setLoading(false);
+      }
+    }
+  }, [projetId]);
+
+  const addMember = useCallback(async (data: CreateProjectMemberData): Promise<ProjectMember> => {
+    try {
+      const newMember = await SupabaseService.addProjectMember(data);
+      setMembers(prev => [...prev, newMember]);
+      return newMember;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'ajout du membre';
+      throw new Error(errorMessage);
+    }
+  }, []);
+
+  const updateMember = useCallback(async (id: string, data: UpdateProjectMemberData): Promise<ProjectMember> => {
+    try {
+      const updatedMember = await SupabaseService.updateProjectMember(id, data);
+      setMembers(prev => prev.map(member => member.id === id ? updatedMember : member));
+      return updatedMember;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour du membre';
+      throw new Error(errorMessage);
+    }
+  }, []);
+
+  const removeMember = useCallback(async (id: string): Promise<void> => {
+    try {
+      await SupabaseService.deleteProjectMember(id);
+      setMembers(prev => prev.filter(member => member.id !== id));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression du membre';
+      throw new Error(errorMessage);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMembers();
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchMembers]);
+
+  return {
+    members,
+    loading,
+    error,
+    addMember,
+    updateMember,
+    removeMember,
+    refetch: fetchMembers
   };
 }
