@@ -9,38 +9,29 @@ export function useProjectMembers(projetId: string) {
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   const loadMembers = async (forceRefresh = false) => {
-    console.log('useProjectMembers - loadMembers called with projetId:', projetId, 'forceRefresh:', forceRefresh);
-    
     if (!projetId) {
-      console.log('useProjectMembers - No projetId, setting empty members');
       setMembers([]);
       setLoading(false);
+      setIsLoadingMembers(false);
       return;
     }
 
     // Éviter les appels multiples simultanés
     if (isLoadingMembers && !forceRefresh) {
-      console.log('useProjectMembers - Already loading, skipping');
       return;
     }
 
     try {
-      // Ne pas vider la liste existante, juste mettre à jour le loading
       setLoading(true);
       setIsLoadingMembers(true);
       setError(null);
 
       const projectMembers = await SupabaseService.getProjectMembers(projetId);
-
-      console.log('useProjectMembers - Received projectMembers:', projectMembers);
-      setMembers(projectMembers);
+      setMembers(projectMembers || []);
     } catch (err) {
       console.error('useProjectMembers - Erreur lors du chargement des membres:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      // Ne pas vider la liste en cas d'erreur, garder les données existantes
-      if (members.length === 0) {
-        setMembers([]);
-      }
+      setMembers([]);
     } finally {
       setLoading(false);
       setIsLoadingMembers(false);
@@ -95,8 +86,10 @@ export function useProjectMembers(projetId: string) {
     setError(null);
     setIsLoadingMembers(false);
     
-    loadMembers();
-  }, [projetId]);
+    if (projetId) {
+      loadMembers();
+    }
+  }, [projetId]); // Ne pas inclure loadMembers dans les dépendances pour éviter les re-renders infinis
 
   return {
     members,

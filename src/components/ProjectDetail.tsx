@@ -138,11 +138,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     loadTasksFromSupabase();
   }, [project.id]); // Recharger les tâches à chaque changement de projet
 
-  // Debug logs pour les membres
-  console.log('ProjectDetail - project.id:', project.id);
-  console.log('ProjectDetail - projectMembers:', projectMembers);
-  console.log('ProjectDetail - membersLoading:', membersLoading);
-  console.log('ProjectDetail - getMemberCount():', getMemberCount());
+  // Debug logs pour les membres (réduits pour éviter le spam)
+  if (membersLoading) {
+    console.log('ProjectDetail - Loading members for project:', project.id);
+  }
 
   // Load real expenses from Supabase
   const loadExpenses = async () => {
@@ -200,22 +199,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     loadExpenses();
   }, [project.id, hasBudget]);
 
-  // Debug logs pour le budget et l'état global
-  console.log('ProjectDetail - budgetLoading:', budgetLoading);
-  console.log('ProjectDetail - isDataReady:', isDataReady);
+  // Debug logs pour le budget et l'état global (réduits)
+  // console.log('ProjectDetail - budgetLoading:', budgetLoading);
+  // console.log('ProjectDetail - isDataReady:', isDataReady);
 
   // Calculate budget summary when expenses change
   useEffect(() => {
-    console.log('Recalculating budget summary:', {
-      hasBudget,
-      projectExpenses: projectExpenses.length,
-      budget_initial: project.budget_initial,
-      devise: project.devise
-    });
-    
     if (hasBudget && projectExpenses.length >= 0) {
       const summary = calculateBudgetSummary(project.budget_initial!, project.devise!, projectExpenses);
-      console.log('New budget summary:', summary);
       setBudgetSummary(summary);
     } else {
       setBudgetSummary(null);
