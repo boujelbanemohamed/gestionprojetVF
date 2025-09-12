@@ -684,6 +684,38 @@ export class SupabaseService {
   }
 
 
+  // Tasks Management
+  static async getProjectTasks(projetId: string): Promise<Task[]> {
+    try {
+      const { data, error } = await supabase
+        .from('taches')
+        .select(`
+          *,
+          utilisateurs:task_users(
+            user_id,
+            users!task_users_user_id_fkey (
+              id,
+              nom,
+              prenom,
+              email,
+              fonction,
+              departement_id,
+              role,
+              created_at
+            )
+          )
+        `)
+        .eq('projet_id', projetId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching project tasks:', error);
+      throw error;
+    }
+  }
+
   // Project Members Management
   static async getProjectMembers(projetId: string): Promise<ProjectMember[]> {
     try {
@@ -696,12 +728,12 @@ export class SupabaseService {
           role,
           added_by,
           added_at,
-          users (
+          users!projet_membres_user_id_fkey (
             id,
             nom,
             prenom,
             fonction,
-            departement,
+            departement_id,
             email,
             role,
             created_at
@@ -756,12 +788,12 @@ export class SupabaseService {
           role,
           added_by,
           added_at,
-          users (
+          users!projet_membres_user_id_fkey (
             id,
             nom,
             prenom,
             fonction,
-            departement,
+            departement_id,
             email,
             role,
             created_at
@@ -811,12 +843,12 @@ export class SupabaseService {
           role,
           added_by,
           added_at,
-          users (
+          users!projet_membres_user_id_fkey (
             id,
             nom,
             prenom,
             fonction,
-            departement,
+            departement_id,
             email,
             role,
             created_at

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Home, Users, Building, TrendingUp, User, ChevronDown, LogOut, Settings, Bell, Cog, FileText } from 'lucide-react';
+import { Home, Users, Building, TrendingUp, User, ChevronDown, LogOut, Settings, Bell, Cog, FileText, Activity } from 'lucide-react';
 import { AuthUser } from '../types';
 import { PermissionService } from '../utils/permissions';
 import { Router } from '../utils/router';
 import NotificationsPanel from './NotificationsPanel';
+import LogsViewer from './LogsViewer';
 
 interface NavigationProps {
   currentUser: AuthUser;
@@ -24,6 +25,7 @@ const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
+  const [isLogsViewerOpen, setIsLogsViewerOpen] = useState(false);
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -69,9 +71,20 @@ const Navigation: React.FC<NavigationProps> = ({
       icon: Cog,
       show: PermissionService.hasPermission(currentUser, 'settings', 'view')
     },
+    {
+      id: 'logs',
+      label: 'Logs',
+      icon: Activity,
+      show: currentUser.role === 'SUPER_ADMIN'
+    },
   ].filter(item => item.show);
 
   const handleNavigate = (viewId: string) => {
+    if (viewId === 'logs') {
+      setIsLogsViewerOpen(true);
+      return;
+    }
+    
     const view = viewId as 'dashboard' | 'members' | 'departments' | 'performance' | 'settings';
     
     // Update router
@@ -269,6 +282,14 @@ const Navigation: React.FC<NavigationProps> = ({
         onClose={() => setIsNotificationsPanelOpen(false)}
         currentUser={currentUser}
       />
+      
+      {/* Logs Viewer - Only for Super Admin */}
+      {currentUser.role === 'SUPER_ADMIN' && (
+        <LogsViewer
+          isOpen={isLogsViewerOpen}
+          onClose={() => setIsLogsViewerOpen(false)}
+        />
+      )}
     </nav>
   );
 };

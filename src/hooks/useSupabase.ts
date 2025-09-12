@@ -248,7 +248,9 @@ export function useAuth() {
     try {
       setLoading(true);
       await SupabaseService.signOut();
-      // L'état sera mis à jour par onAuthStateChange
+      // Forcer la mise à jour de l'état immédiatement
+      setUser(null);
+      setLoading(false);
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
       // Forcer la déconnexion même en cas d'erreur
@@ -356,15 +358,18 @@ export function useProjects() {
   }, []);
   
   const updateProject = useCallback(async (id: string, data: Record<string, any>) => {
-    const project = await SupabaseService.updateProject(id, data);
+    // Filtrer les données pour ne garder que les champs de la table projets
+    const { taches, membres, ...projectData } = data;
+    
+    const project = await SupabaseService.updateProject(id, projectData);
     
     // Si des membres sont spécifiés dans la mise à jour, gérer les changements
-    if (data.membres !== undefined) {
+    if (membres !== undefined) {
       try {
         // Récupérer les membres actuels
         const currentMembers = await SupabaseService.getProjectMembers(id);
         const currentMemberIds = currentMembers.map(m => m.user_id);
-        const newMemberIds = data.membres || [];
+        const newMemberIds = membres || [];
         
         // Supprimer les membres qui ne sont plus dans la liste
         for (const member of currentMembers) {
