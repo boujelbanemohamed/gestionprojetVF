@@ -45,9 +45,6 @@ function App() {
   const { users, updateUser, deleteUser } = useUsers();
   const { projects, createProject, updateProject, deleteProject } = useProjects();
   
-  // Get project members for the current project
-  const { members: projectMembers } = useProjectMembers(currentProject?.id || '');
-  
   const [currentRoute, setCurrentRoute] = useState<RouteConfig>(Router.getCurrentRoute());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -101,6 +98,23 @@ function App() {
   const getAccessibleClosedProjects = () => {
     return PermissionService.getAccessibleProjects(currentUser, projects).filter(p => p.statut === 'cloture');
   };
+
+  const accessibleProjects = getAccessibleProjects();
+  const accessibleClosedProjects = getAccessibleClosedProjects();
+
+  // Get current project for project detail view
+  const getCurrentProject = () => {
+    if (currentRoute.component === 'project-detail' && currentRoute.params?.projectId) {
+      // Check both active and closed projects
+      return [...accessibleProjects, ...accessibleClosedProjects].find(p => p.id === currentRoute.params!.projectId);
+    }
+    return null;
+  };
+
+  const currentProject = getCurrentProject();
+  
+  // Get project members for the current project (now that currentProject is defined)
+  const { members: projectMembers } = useProjectMembers(currentProject?.id || '');
 
   const handleLogin = (user: AuthUser) => {
     setIsLoginModalOpen(false);
@@ -527,20 +541,6 @@ function App() {
       </div>
     );
   }
-
-  const accessibleProjects = getAccessibleProjects();
-  const accessibleClosedProjects = getAccessibleClosedProjects();
-
-  // Get current project for project detail view
-  const getCurrentProject = () => {
-    if (currentRoute.component === 'project-detail' && currentRoute.params?.projectId) {
-      // Check both active and closed projects
-      return [...accessibleProjects, ...accessibleClosedProjects].find(p => p.id === currentRoute.params!.projectId);
-    }
-    return null;
-  };
-
-  const currentProject = getCurrentProject();
 
   return (
     <ErrorBoundary>

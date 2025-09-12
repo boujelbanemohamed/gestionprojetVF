@@ -102,8 +102,23 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [budgetLoading, setBudgetLoading] = useState(true);
 
+  // Hook pour gérer les membres du projet
+  const { 
+    members: projectMembers,
+    loading: membersLoading, 
+    error: membersError,
+    loadMembers,
+    addMember, 
+    removeMember, 
+    getMemberCount,
+    isMember 
+  } = useProjectMembers(project.id);
+
   // État de chargement global pour s'assurer que toutes les données sont prêtes
   const isDataReady = !membersLoading && !budgetLoading;
+
+  // Check if project has budget defined
+  const hasBudget = project.budget_initial && project.devise;
 
   // Charger les tâches depuis Supabase si elles ne sont pas disponibles
   useEffect(() => {
@@ -123,26 +138,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     loadTasksFromSupabase();
   }, [project.id]); // Recharger les tâches à chaque changement de projet
 
-  // Hook pour gérer les membres du projet
-  const { 
-    members: projectMembers,
-    loading: membersLoading, 
-    error: membersError,
-    loadMembers,
-    addMember, 
-    removeMember, 
-    getMemberCount,
-    isMember 
-  } = useProjectMembers(project.id);
-
   // Debug logs pour les membres
   console.log('ProjectDetail - project.id:', project.id);
   console.log('ProjectDetail - projectMembers:', projectMembers);
   console.log('ProjectDetail - membersLoading:', membersLoading);
   console.log('ProjectDetail - getMemberCount():', getMemberCount());
-
-  // Check if project has budget defined
-  const hasBudget = project.budget_initial && project.devise;
 
   // Load real expenses from Supabase
   const loadExpenses = async () => {
@@ -223,6 +223,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
     setBudgetLoading(false);
   }, [project.budget_initial, project.devise, projectExpenses]);
 
+  // Calculate project stats after localTasks is available
   const stats = getProjectStats(localTasks);
 
   // projectMembers is now managed by the useProjectMembers hook
