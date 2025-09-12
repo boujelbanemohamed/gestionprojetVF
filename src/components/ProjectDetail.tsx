@@ -18,7 +18,7 @@ import GanttChart from './GanttChart';
 import { isProjectApproachingDeadline, isProjectOverdue, getDaysUntilDeadline, getAlertMessage, getAlertSeverity, getAlertColorClasses, DEFAULT_ALERT_THRESHOLD } from '../utils/alertsConfig';
 import ProjectAlertSettingsModal from './ProjectAlertSettingsModal';
 import ProjectBudgetModal from './ProjectBudgetModal';
-import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor, type BudgetSummary } from '../utils/budgetCalculations';
+import { calculateBudgetSummary, formatCurrency, getBudgetProgressColor, BudgetSummary } from '../utils/budgetCalculations';
 import ProjectMembersManagementModal from './ProjectMembersManagementModal';
 import ProjectInfoModal from './ProjectInfoModal';
 import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';
@@ -101,6 +101,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   const [expensesLoading, setExpensesLoading] = useState(true);
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [budgetLoading, setBudgetLoading] = useState(true);
+
+  // État de chargement global pour s'assurer que toutes les données sont prêtes
+  const isDataReady = !membersLoading && !budgetLoading;
 
   // Charger les tâches depuis Supabase si elles ne sont pas disponibles
   useEffect(() => {
@@ -196,9 +199,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   useEffect(() => {
     loadExpenses();
   }, [project.id, hasBudget]);
-
-  // État de chargement global pour s'assurer que toutes les données sont prêtes
-  const isDataReady = !membersLoading && !budgetLoading;
 
   // Debug logs pour le budget et l'état global
   console.log('ProjectDetail - budgetLoading:', budgetLoading);
