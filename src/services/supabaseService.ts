@@ -20,6 +20,44 @@ export class SupabaseService {
     });
 
     if (error) throw error;
+
+    // Si l'inscription a réussi et qu'un utilisateur a été créé, l'ajouter à la table users
+    if (data.user) {
+      try {
+        // Trouver l'ID du département si le nom est fourni
+        let departement_id: string | undefined;
+        if (userData.departement) {
+          const { data: deptData } = await supabase
+            .from('departements')
+            .select('id')
+            .eq('nom', userData.departement)
+            .single();
+          departement_id = deptData?.id;
+        }
+
+        // Créer l'utilisateur dans la table users
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            nom: userData.nom,
+            prenom: userData.prenom,
+            email: email,
+            fonction: userData.fonction || null,
+            departement_id: departement_id || null,
+            role: userData.role || 'UTILISATEUR'
+          });
+
+        if (userError) {
+          console.error('Erreur lors de la création du profil utilisateur:', userError);
+          // Ne pas faire échouer l'inscription si la création du profil échoue
+        }
+      } catch (profileError) {
+        console.error('Erreur lors de la création du profil utilisateur:', profileError);
+        // Ne pas faire échouer l'inscription si la création du profil échoue
+      }
+    }
+
     return data;
   }
 
