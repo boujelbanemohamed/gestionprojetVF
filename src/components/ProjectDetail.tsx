@@ -1298,16 +1298,24 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredTasks.map(task => (
-                      <TaskCard
+                      <div 
                         key={task.id}
-                        task={task}
                         onClick={() => {
                           console.log('Opening task details from task card for task:', task.nom);
                           handleShowTaskDetails(task);
                         }}
-                        onShowComments={handleShowComments}
-                        onDelete={handleDeleteTask}
-                      />
+                        className="cursor-pointer"
+                      >
+                        <TaskCard
+                          task={task}
+                          onClick={() => {
+                            console.log('TaskCard onClick called for task:', task.nom);
+                            handleShowTaskDetails(task);
+                          }}
+                          onShowComments={handleShowComments}
+                          onDelete={handleDeleteTask}
+                        />
+                      </div>
                     ))}
                   </div>
                 )}
