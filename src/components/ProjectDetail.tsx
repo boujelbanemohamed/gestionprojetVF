@@ -1020,26 +1020,26 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {projectMembers.map(member => {
-                  const user = member.user;
-                  if (!user) return null;
-                  
-                  const isProjectManager = user.id === project.responsable_id;
-                  const userTasks = project.taches.filter(task => 
-                    task.utilisateurs.some(u => u.id === user.id)
-                  );
-                  
-                  return (
-                    <div key={member.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {getUserInitials(user.prenom, user.nom)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="text-sm font-semibold text-gray-900 truncate">
-                              {user.prenom} {user.nom}
-                            </h4>
+                  {projectMembers.map(member => {
+                    const user = member.user;
+                    if (!user) return null;
+                    
+                    const isProjectManager = user.id === project.responsable_id;
+                    const userTasks = project.taches.filter(task => 
+                      task.utilisateurs.some(u => u.id === user.id)
+                    );
+                    
+                    return (
+                      <div key={member.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                            {getUserInitials(user.prenom, user.nom)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="text-sm font-semibold text-gray-900 truncate">
+                                {user.prenom || ''} {user.nom || ''}
+                              </h4>
                             {isProjectManager && (
                               <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
                                 Responsable
@@ -1165,7 +1165,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                   <option value="all">Tous les membres</option>
                   {projectMembers.map(member => (
                     <option key={member.id} value={member.user?.id || member.user_id}>
-                      {member.user?.prenom || ''} {member.user?.nom || ''}
+                      {member.user ? `${member.user.prenom || ''} ${member.user.nom || ''}`.trim() : 'Utilisateur inconnu'}
                     </option>
                   ))}
                 </select>
@@ -1205,7 +1205,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                   <div className="flex items-center space-x-2 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
                     <User size={14} />
                     <span>
-                      {projectMembers.find(m => (m.user?.id || m.user_id) === filterMember)?.user?.prenom} {projectMembers.find(m => (m.user?.id || m.user_id) === filterMember)?.user?.nom}
+                      {(() => {
+                        const selectedMember = projectMembers.find(m => (m.user?.id || m.user_id) === filterMember);
+                        return selectedMember?.user ? `${selectedMember.user.prenom || ''} ${selectedMember.user.nom || ''}`.trim() : 'Utilisateur inconnu';
+                      })()}
                     </span>
                     <button
                       onClick={() => setFilterMember('all')}

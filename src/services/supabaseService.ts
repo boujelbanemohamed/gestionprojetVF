@@ -754,16 +754,16 @@ export class SupabaseService {
         role: member.role,
         added_by: member.added_by,
         added_at: new Date(member.added_at),
-        user: {
+        user: member.users ? {
           id: member.users.id,
-          nom: member.users.nom,
-          prenom: member.users.prenom,
-          fonction: member.users.fonction,
-          departement: member.users.departement,
-          email: member.users.email,
-          role: member.users.role,
+          nom: member.users.nom || '',
+          prenom: member.users.prenom || '',
+          fonction: member.users.fonction || '',
+          departement: member.users.departement || '',
+          email: member.users.email || '',
+          role: member.users.role || '',
           created_at: new Date(member.users.created_at)
-        }
+        } : null
       })) || [];
     } catch (error) {
       console.error('Error fetching project members:', error);
@@ -813,16 +813,16 @@ export class SupabaseService {
         role: result.role,
         added_by: result.added_by,
         added_at: new Date(result.added_at),
-        user: {
+        user: result.users ? {
           id: result.users.id,
-          nom: result.users.nom,
-          prenom: result.users.prenom,
-          fonction: result.users.fonction,
-          departement: result.users.departement,
-          email: result.users.email,
-          role: result.users.role,
+          nom: result.users.nom || '',
+          prenom: result.users.prenom || '',
+          fonction: result.users.fonction || '',
+          departement: result.users.departement || '',
+          email: result.users.email || '',
+          role: result.users.role || '',
           created_at: new Date(result.users.created_at)
-        }
+        } : null
       };
     } catch (error) {
       console.error('Error adding project member:', error);
@@ -868,16 +868,16 @@ export class SupabaseService {
         role: result.role,
         added_by: result.added_by,
         added_at: new Date(result.added_at),
-        user: {
+        user: result.users ? {
           id: result.users.id,
-          nom: result.users.nom,
-          prenom: result.users.prenom,
-          fonction: result.users.fonction,
-          departement: result.users.departement,
-          email: result.users.email,
-          role: result.users.role,
+          nom: result.users.nom || '',
+          prenom: result.users.prenom || '',
+          fonction: result.users.fonction || '',
+          departement: result.users.departement || '',
+          email: result.users.email || '',
+          role: result.users.role || '',
           created_at: new Date(result.users.created_at)
-        }
+        } : null
       };
     } catch (error) {
       console.error('Error updating project member:', error);
