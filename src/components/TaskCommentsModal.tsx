@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, MessageCircle, Send, Calendar, User, Trash2, Upload, File, Download, Paperclip } from 'lucide-react';
 import { Task, Comment, User as UserType, CommentAttachment } from '../types';
+import { getUserInitials } from '../utils/stringUtils';
 
 interface TaskCommentsModalProps {
   isOpen: boolean;
@@ -179,7 +180,7 @@ const TaskCommentsModal: React.FC<TaskCommentsModalProps> = ({
                   <div key={comment.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 group hover:shadow-sm transition-all duration-200">
                     <div className="flex items-start space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                        {comment.auteur.prenom.charAt(0)}{comment.auteur.nom.charAt(0)}
+                        {comment.auteur.getFirstChar(prenom)}{comment.auteur.getFirstChar(nom)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-2">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, User, Save, Eye, EyeOff, Lock, Mail, Building, Briefcase, Calendar, LogOut } from 'lucide-react';
 import { AuthUser } from '../types';
+import { getUserInitials } from '../utils/stringUtils';
 import { SupabaseService } from '../services/supabaseService';
 
 interface UserProfileModalProps {
@@ -212,7 +213,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
-                    {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                    {user.getFirstChar(prenom)}{user.getFirstChar(nom)}
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">

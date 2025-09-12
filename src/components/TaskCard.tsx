@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, User, Edit2, Building, Briefcase, FileText, PlayCircle, CheckCircle, MessageCircle, Paperclip, Download, MoreVertical, Trash2 } from 'lucide-react';
 import { Task } from '../types';
+import { getUserInitials } from '../utils/stringUtils';
 import { getStatusColor, getStatusText } from '../utils/calculations';
 
 interface TaskCardProps {
@@ -243,7 +244,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, onShowComments, onDe
             {task.utilisateurs.map((user) => (
               <div key={user.id} className="flex items-center space-x-2">
                 <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xs">
-                  {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                  {user.getFirstChar(prenom)}{user.getFirstChar(nom)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-gray-900">

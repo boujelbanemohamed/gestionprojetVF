@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Plus, User, Mail, Building, Briefcase, Search, Edit2, Trash2, Shield, Crown, UserCheck, FolderOpen, Star, Calendar, BarChart3 } from 'lucide-react';
 import { User as UserType, Department, AuthUser, Project } from '../types';
+import { getUserInitials } from '../utils/stringUtils';
 import { PermissionService } from '../utils/permissions';
 import CreateMemberModal from './CreateMemberModal';
 import ChangeRoleModal from './ChangeRoleModal';
@@ -426,7 +427,7 @@ const MembersManagement: React.FC<MembersManagementProps> = ({
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            {member.prenom.charAt(0)}{member.nom.charAt(0)}
+                            {member.getFirstChar(prenom)}{member.getFirstChar(nom)}
                           </div>
                           <div>
                             <div className="text-sm font-medium text-gray-900">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Plus, FileText, Search, Filter, Calendar, Building, Eye, Edit2, Trash2, Download, Upload, X, Save } from 'lucide-react';
 import { Project, User, AuthUser } from '../types';
+import { getUserInitials } from '../utils/stringUtils';
 import { PermissionService } from '../utils/permissions';
 
 interface MeetingMinute {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, User, Search, Check, X, AlertTriangle, Save, Crown, UserCheck } from 'lucide-react';
 import { AuthUser, User as UserType } from '../types';
+import { getUserInitials } from '../utils/stringUtils';
 import { PermissionsService } from '../services/permissionsService';
 
 interface Permission {
@@ -215,7 +216,7 @@ const PermissionsSettings: React.FC<PermissionsSettingsProps> = ({
       'attachments': 'Pièces jointes'
     };
     
-    return resourceNames[resource] || resource.charAt(0).toUpperCase() + resource.slice(1);
+    return resourceNames[resource] || getFirstChar(resource).toUpperCase() + resource.slice(1);
   };
 
   return (
@@ -260,7 +261,7 @@ const PermissionsSettings: React.FC<PermissionsSettingsProps> = ({
               >
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                    {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                    {user.getFirstChar(prenom)}{user.getFirstChar(nom)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium text-gray-900">

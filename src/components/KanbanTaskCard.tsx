@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, User, Building, Briefcase, MessageCircle, Edit2, Eye, ChevronDown, ChevronUp, FileText, PlayCircle, CheckCircle, Paperclip, Download, MoreVertical, Trash2 } from 'lucide-react';
 import { Task } from '../types';
+import { getUserInitials } from '../utils/stringUtils';
 
 interface KanbanTaskCardProps {
   task: Task;
@@ -199,7 +200,7 @@ const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({ task, onTaskClick, onSh
             {task.utilisateurs.slice(0, 2).map((user) => (
               <div key={user.id} className="flex items-center space-x-2">
                 <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xs">
-                  {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                  {user.getFirstChar(prenom)}{user.getFirstChar(nom)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs text-gray-900 truncate">

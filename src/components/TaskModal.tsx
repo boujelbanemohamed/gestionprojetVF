@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Plus, User, Building, Briefcase, FileText, PlayCircle, CheckCircle, Upload, Trash2, Download, Paperclip } from 'lucide-react';
 import { Task, User as UserType, TaskAttachment } from '../types';
+import { getUserInitials } from '../utils/stringUtils';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -579,7 +580,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, task, 
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                      {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                      {user.getFirstChar(prenom)}{user.getFirstChar(nom)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900">
