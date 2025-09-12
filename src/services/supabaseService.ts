@@ -24,14 +24,42 @@ export class SupabaseService {
       throw new Error('Un utilisateur avec cet email existe déjà');
     }
 
-    const authData = await AuthService.signUp(email, password, userData);
-    
-    // Si l'inscription a réussi et qu'un utilisateur a été créé, l'ajouter à la table users
-    if (authData.user) {
-      return await UserService.createUserProfile(authData.user.id, email, userData);
-    }
+    try {
+      const authData = await AuthService.signUp(email, password, userData);
+      
+      // Si l'inscription a réussi et qu'un utilisateur a été créé, l'ajouter à la table users
+      if (authData.user) {
+        return await UserService.createUserProfile(authData.user.id, email, userData);
+      }
 
-    return authData;
+      return authData;
+    } catch (error) {
+      // Si l'erreur vient d'AuthService et indique que l'utilisateur existe déjà dans Auth
+      if (error.message?.includes('existe déjà dans le système d\'authentification')) {
+        // L'utilisateur existe dans Auth mais pas dans notre table users
+        // On va essayer de créer son profil dans la table users
+        try {
+          // Vérifier à nouveau si l'utilisateur existe dans notre table (au cas où il aurait été créé entre temps)
+          const userExists = await UserService.checkUserExists(email);
+          if (!userExists) {
+            // L'utilisateur n'existe pas dans notre table, on va essayer de le créer
+            // On utilise un ID généré basé sur l'email pour la cohérence
+            const userId = `auth-${email.replace(/[^a-zA-Z0-9]/g, '')}-${Date.now()}`;
+            return await UserService.createUserProfile(userId, email, userData);
+          } else {
+            // L'utilisateur existe maintenant dans notre table
+            throw new Error('Un utilisateur avec cet email existe déjà');
+          }
+        } catch (profileError) {
+          console.warn('Erreur lors de la création du profil pour l\'utilisateur existant:', profileError);
+          // Si on ne peut pas créer le profil, on lance l'erreur originale
+          throw error;
+        }
+      }
+      
+      // Re-lancer l'erreur originale
+      throw error;
+    }
   }
 
   // Fonction helper pour créer le profil utilisateur

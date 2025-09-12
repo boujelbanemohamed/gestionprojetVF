@@ -9,19 +9,28 @@ export class UserService {
    * Vérifier si un utilisateur existe déjà par email
    */
   static async checkUserExists(email: string): Promise<boolean> {
-    return withErrorHandling('UserService.checkUserExists', async () => {
+    try {
       const { data, error } = await supabase
         .from(TABLES.USERS)
         .select('id')
         .eq('email', email)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (error) {
+        // Si l'erreur est 406 (Not Acceptable) ou PGRST116 (no rows), l'utilisateur n'existe pas
+        if (error.code === 'PGRST116' || error.status === 406) {
+          return false;
+        }
+        // Pour les autres erreurs, on considère que l'utilisateur n'existe pas par sécurité
+        console.warn('Erreur lors de la vérification de l\'utilisateur:', error);
+        return false;
       }
 
       return !!data;
-    });
+    } catch (error) {
+      console.warn('Erreur lors de la vérification de l\'utilisateur:', error);
+      return false;
+    }
   }
 
   /**
