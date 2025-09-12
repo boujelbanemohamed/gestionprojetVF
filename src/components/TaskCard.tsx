@@ -58,7 +58,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, onShowComments, onDe
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all duration-200 group relative">
       {/* Actions Menu */}
-      <div className="absolute top-3 right-3 z-10">
+      <div className="absolute top-3 right-3 z-10" data-action-menu>
         <div className="relative">
           <button
             onClick={(e) => {

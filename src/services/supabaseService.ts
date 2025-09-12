@@ -337,7 +337,7 @@ export class SupabaseService {
     if (departement && !departement_id) {
       // Si departement est fourni comme nom, on doit le convertir en ID
       // Pour l'instant, on ignore cette conversion car elle nécessite une requête supplémentaire
-      console.warn('departement name provided but departement_id not found, ignoring departement field');
+      // console.warn('departement name provided but departement_id not found, ignoring departement field');
     }
     
     const { data, error } = await supabase

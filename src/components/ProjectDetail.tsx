@@ -1300,7 +1300,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                     {filteredTasks.map(task => (
                       <div 
                         key={task.id}
-                        onClick={() => {
+                        onClick={(e) => {
+                          // Vérifier si le clic vient du menu d'actions
+                          if (e.target instanceof Element && e.target.closest('[data-action-menu]')) {
+                            return; // Ne pas ouvrir le détail si c'est le menu d'actions
+                          }
                           console.log('Opening task details from task card for task:', task.nom);
                           handleShowTaskDetails(task);
                         }}
