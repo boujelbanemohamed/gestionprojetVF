@@ -141,7 +141,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
   // Check if project has budget defined
   const hasBudget = project.budget_initial && project.devise;
 
-
   // Load real expenses from Supabase
   const loadExpenses = async () => {
     console.log('Loading expenses for project:', project.id);
@@ -193,7 +192,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
       setExpensesLoading(false);
     }
   };
-
 
   useEffect(() => {
     loadExpenses();
