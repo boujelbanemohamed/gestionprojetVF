@@ -373,7 +373,7 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(95vh-120px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(95vh-200px)] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           {!hasBudget ? (
             <div className="text-center py-12">
               <DollarSign className="mx-auto text-gray-400 mb-4" size={48} />
@@ -478,7 +478,7 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
 
                 {/* Add Expense Form */}
                 {isAddingExpense && (
-                  <div className="p-6 border-b bg-gray-50">
+                  <div className="p-6 border-b bg-gray-50 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                     <h4 className="text-md font-medium text-gray-900 mb-4">Nouvelle dépense</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
@@ -667,7 +667,7 @@ const ProjectBudgetModal: React.FC<ProjectBudgetModalProps> = ({
                       <p className="text-gray-500">Aucune dépense enregistrée pour ce projet</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-2">
                       {expenses
                         .sort((a, b) => new Date(b.date_depense).getTime() - new Date(a.date_depense).getTime())
                         .map((expense) => (
