@@ -60,7 +60,7 @@ const DepartmentMembersModal: React.FC<DepartmentMembersModalProps> = ({
                 <div key={member.id} className="bg-gray-50 rounded-xl border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
                   <div className="flex items-center space-x-3 mb-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                      {getUserInitials(member.prenom, member.nom)}
+                      {member.getFirstChar(prenom)}{member.getFirstChar(nom)}
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">

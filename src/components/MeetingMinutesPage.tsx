@@ -347,7 +347,7 @@ const MeetingMinutesPage: React.FC<MeetingMinutesPageProps> = ({
                         {pv.uploaded_by ? (
                           <div className="flex items-center space-x-2">
                             <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xs">
-                              {getUserInitials(pv.uploaded_by.prenom, pv.uploaded_by.nom)}
+                              {pv.uploaded_by.prenom?.charAt(0) || 'U'}{pv.uploaded_by.nom?.charAt(0) || 'U'}
                             </div>
                             <div>
                               <p className="text-sm text-gray-900">

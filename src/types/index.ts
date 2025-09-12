@@ -31,27 +31,6 @@ export interface ProjetMembre {
   user?: User; // User details when loaded
 }
 
-export interface ProjectMember {
-  id: string;
-  projet_id: string;
-  user_id: string;
-  role: 'membre' | 'responsable';
-  added_by: string;
-  added_at: Date;
-  user: User;
-}
-
-export interface CreateProjectMemberData {
-  projet_id: string;
-  user_id: string;
-  role: 'membre' | 'responsable';
-  added_by: string;
-}
-
-export interface UpdateProjectMemberData {
-  role?: 'membre' | 'responsable';
-}
-
 export interface CommentAttachment {
   id: string;
   nom: string;

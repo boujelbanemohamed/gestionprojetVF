@@ -213,7 +213,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
-                    {getUserInitials(user.prenom, user.nom)}
+                    {user.getFirstChar(prenom)}{user.getFirstChar(nom)}
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">

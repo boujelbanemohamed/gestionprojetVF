@@ -1,12 +1,8 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Project, User, ProjetMembre } from '../types';
+import { Project, User } from '../types';
 
-export const exportProjectToPdf = (
-  project: Project, 
-  projectMembers: ProjetMembre[] = [], 
-  availableUsers: User[] = []
-): void => {
+export const exportProjectToPdf = (project: Project): void => {
   // Create a new PDF document
   const doc = new jsPDF();
 
@@ -34,9 +30,9 @@ export const exportProjectToPdf = (
   let y = 65;
   const lineHeight = 10;
   
-  // Get project manager from availableUsers
+  // Get project manager
   const projectManager = project.responsable_id 
-    ? availableUsers.find(user => user.id === project.responsable_id)
+    ? project.taches.flatMap(t => t.utilisateurs).find(user => user.id === project.responsable_id)
     : null;
   
   // Date de début & Date de fin
@@ -134,19 +130,18 @@ export const exportProjectToPdf = (
     y = 20;
   }
   
-  // Membres du projet - utiliser les données de projectMembers
-  const allProjectMembers = projectMembers
-    .map(member => {
-      const user = availableUsers.find(u => u.id === member.user_id);
-      return user ? {
-        ...user,
-        role: member.role
-      } : null;
-    })
-    .filter(Boolean) as User[];
+  // Membres du projet
+  const projectMembers = Array.from(
+    new Map(
+      project.taches
+        .flatMap(task => task.utilisateurs)
+        .map(user => [user.id, user])
+    ).values()
+  );
 
   // Add project manager to members list if not already included
-  if (projectManager && !allProjectMembers.some(member => member.id === projectManager.id)) {
+  const allProjectMembers = [...projectMembers];
+  if (projectManager && !projectMembers.some(member => member.id === projectManager.id)) {
     allProjectMembers.push(projectManager);
   }
   

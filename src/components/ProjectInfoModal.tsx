@@ -2,7 +2,6 @@ import React from 'react';
 import { X, FileText, Calendar, User, ExternalLink, DollarSign, Building, Download, Edit2, Lightbulb, TrendingUp, Users, Plus, Clock, MapPin, Briefcase } from 'lucide-react';
 import { Project, User as UserType, ProjetMembre } from '../types';
 import { exportProjectToPdf } from '../utils/pdfExport';
-import { getUserInitials } from '../utils/stringUtils';
 
 interface ProjectInfoModalProps {
   isOpen: boolean;
@@ -33,7 +32,7 @@ const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
     : null;
 
   const handleExportPdf = () => {
-    exportProjectToPdf(project, projectMembers, availableUsers);
+    exportProjectToPdf(project);
   };
 
   return (
@@ -299,7 +298,7 @@ const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
                       <div key={member.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            {getUserInitials(user.prenom, user.nom)}
+                            {user.prenom.charAt(0)}{user.nom.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">

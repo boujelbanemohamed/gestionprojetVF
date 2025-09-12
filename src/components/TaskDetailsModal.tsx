@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, Calendar, User, Building, Briefcase, FileText, PlayCircle, CheckCircle, MessageCircle, Edit2, History, Paperclip, Download, Trash2 } from 'lucide-react';
 import { Task, TaskAttachment } from '../types';
-import { getUserInitials } from '../utils/stringUtils';
 import { getStatusColor, getStatusText } from '../utils/calculations';
 import TaskHistoryModal from './TaskHistoryModal';
 
@@ -322,7 +321,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                     <div key={user.id} className="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {user.getFirstChar(prenom)}{user.getFirstChar(nom)}
+                          {user.prenom.charAt(0)}{user.nom.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h5 className="text-sm font-semibold text-gray-900">

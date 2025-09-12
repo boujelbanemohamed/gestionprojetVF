@@ -155,7 +155,7 @@ const TaskHistoryModal: React.FC<TaskHistoryModalProps> = ({
                               <div className="flex items-center space-x-3 ml-4 flex-shrink-0">
                                 <div className="flex items-center space-x-2">
                                   <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xs">
-                                    {getUserInitials(entry.auteur.prenom, entry.auteur.nom)}
+                                    {entry.auteur.getFirstChar(prenom)}{entry.auteur.getFirstChar(nom)}
                                   </div>
                                   <span className="text-xs text-gray-600">
                                     {entry.auteur.prenom} {entry.auteur.nom}

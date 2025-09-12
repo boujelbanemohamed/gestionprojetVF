@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { Home, Users, Building, TrendingUp, User, ChevronDown, LogOut, Settings, Bell, Cog, FileText, Activity } from 'lucide-react';
+import { Home, Users, Building, TrendingUp, User, ChevronDown, LogOut, Settings, Bell, Cog, FileText } from 'lucide-react';
 import { AuthUser } from '../types';
 import { PermissionService } from '../utils/permissions';
 import { Router } from '../utils/router';
 import NotificationsPanel from './NotificationsPanel';
-import LogsViewer from './LogsViewer';
-import { getUserInitials } from '../utils/stringUtils';
 
 interface NavigationProps {
   currentUser: AuthUser;
@@ -26,7 +24,6 @@ const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
-  const [isLogsViewerOpen, setIsLogsViewerOpen] = useState(false);
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -72,20 +69,9 @@ const Navigation: React.FC<NavigationProps> = ({
       icon: Cog,
       show: PermissionService.hasPermission(currentUser, 'settings', 'view')
     },
-    {
-      id: 'logs',
-      label: 'Logs',
-      icon: Activity,
-      show: currentUser.role === 'SUPER_ADMIN'
-    },
   ].filter(item => item.show);
 
   const handleNavigate = (viewId: string) => {
-    if (viewId === 'logs') {
-      setIsLogsViewerOpen(true);
-      return;
-    }
-    
     const view = viewId as 'dashboard' | 'members' | 'departments' | 'performance' | 'settings';
     
     // Update router
@@ -175,7 +161,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 className="flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                  {getUserInitials(currentUser.prenom, currentUser.nom)}
+                  {currentUser.prenom.charAt(0)}{currentUser.nom.charAt(0)}
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium text-gray-900">
@@ -202,7 +188,7 @@ const Navigation: React.FC<NavigationProps> = ({
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {getUserInitials(currentUser.prenom, currentUser.nom)}
+                          {currentUser.prenom.charAt(0)}{currentUser.nom.charAt(0)}
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
@@ -283,14 +269,6 @@ const Navigation: React.FC<NavigationProps> = ({
         onClose={() => setIsNotificationsPanelOpen(false)}
         currentUser={currentUser}
       />
-      
-      {/* Logs Viewer - Only for Super Admin */}
-      {currentUser.role === 'SUPER_ADMIN' && (
-        <LogsViewer
-          isOpen={isLogsViewerOpen}
-          onClose={() => setIsLogsViewerOpen(false)}
-        />
-      )}
     </nav>
   );
 };

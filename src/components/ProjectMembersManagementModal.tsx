@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, Users, Plus, Trash2, AlertTriangle, User, Building, Briefcase, Search } from 'lucide-react';
 import { Project, User as UserType, ProjetMembre, AuthUser } from '../types';
-import { getUserInitials } from '../utils/stringUtils';
 
 interface ProjectMembersManagementModalProps {
   isOpen: boolean;
@@ -131,7 +130,7 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                              {user.getFirstChar(prenom)}{user.getFirstChar(nom)}
+                              {user.prenom.charAt(0)}{user.nom.charAt(0)}
                             </div>
                             <div>
                               <h4 className="text-sm font-semibold text-gray-900">
@@ -279,7 +278,7 @@ const ProjectMembersManagementModal: React.FC<ProjectMembersManagementModalProps
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            {user.getFirstChar(prenom)}{user.getFirstChar(nom)}
+                            {user.prenom.charAt(0)}{user.nom.charAt(0)}
                           </div>
                           <div>
                             <h4 className="text-sm font-semibold text-gray-900">

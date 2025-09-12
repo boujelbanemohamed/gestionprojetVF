@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { AuthUser, User, Department, Project, Task, Comment } from '../types';
+import { formatDateToISOString } from '../utils/dateUtils';
 
 export class SupabaseService {
   // Authentication
@@ -38,19 +39,11 @@ export class SupabaseService {
   }
 
   static async getCurrentUser(): Promise<AuthUser | null> {
-    console.log('SupabaseService.getCurrentUser - Début');
-    
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('SupabaseService.getCurrentUser - User auth:', user?.id, user?.email);
     
-    if (!user) {
-      console.log('SupabaseService.getCurrentUser - Aucun utilisateur auth');
-      return null;
-    }
+    if (!user) return null;
 
     try {
-      console.log('SupabaseService.getCurrentUser - Recherche du profil pour user.id:', user.id);
-      
       const { data: profile, error } = await supabase
         .from('users')
         .select(`
@@ -60,11 +53,8 @@ export class SupabaseService {
         .eq('id', user.id)
         .single();
 
-      console.log('SupabaseService.getCurrentUser - Résultat requête:', { profile, error });
-
       if (error) {
         console.error('Erreur lors de la récupération du profil utilisateur:', error);
-        console.log('SupabaseService.getCurrentUser - Retour utilisateur basique');
         // Retourner un utilisateur basique si le profil n'existe pas
         return {
           id: user.id,
@@ -78,8 +68,6 @@ export class SupabaseService {
         };
       }
 
-      console.log('SupabaseService.getCurrentUser - Profil trouvé:', profile);
-      
       return {
         id: profile.id,
         nom: profile.nom,
@@ -92,7 +80,6 @@ export class SupabaseService {
       };
     } catch (error) {
       console.error('Erreur lors de la récupération du profil utilisateur:', error);
-      console.log('SupabaseService.getCurrentUser - Retour null à cause de l\'erreur');
       return null;
     }
   }
@@ -311,8 +298,8 @@ export class SupabaseService {
       .from('projets')
       .insert({
         ...projectData,
-        date_debut: projectData.date_debut?.toISOString().split('T')[0],
-        date_fin: projectData.date_fin?.toISOString().split('T')[0]
+        date_debut: formatDateToISOString(projectData.date_debut),
+        date_fin: formatDateToISOString(projectData.date_fin)
       })
       .select()
       .single();
@@ -349,8 +336,8 @@ export class SupabaseService {
       .from('projets')
       .update({
         ...projectDataWithoutTaches,
-        date_debut: projectData.date_debut?.toISOString().split('T')[0],
-        date_fin: projectData.date_fin?.toISOString().split('T')[0]
+        date_debut: formatDateToISOString(projectData.date_debut),
+        date_fin: formatDateToISOString(projectData.date_fin)
       })
       .eq('id', id)
       .select()
@@ -406,7 +393,7 @@ export class SupabaseService {
       .from('taches')
       .insert({
         ...taskData,
-        date_realisation: taskData.date_realisation.toISOString().split('T')[0]
+        date_realisation: formatDateToISOString(taskData.date_realisation)
       })
       .select()
       .single();
@@ -558,7 +545,7 @@ export class SupabaseService {
       .from('taches')
       .update({
         ...taskData,
-        date_realisation: taskData.date_realisation?.toISOString().split('T')[0]
+        date_realisation: formatDateToISOString(taskData.date_realisation)
       })
       .eq('id', id)
       .select()
@@ -697,8 +684,195 @@ export class SupabaseService {
     }
   }
 
+  // ===== PROJET MEMBRES METHODS =====
 
-  // Tasks Management
+  // Get project members
+  static async getProjectMembers(projetId: string): Promise<ProjetMembre[]> {
+    try {
+      console.log('SupabaseService.getProjectMembers - Called with projetId:', projetId);
+      const { data, error } = await supabase
+        .from('projet_membres')
+        .select(`
+          *,
+          user:users!projet_membres_user_id_fkey(*)
+        `)
+        .eq('projet_id', projetId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        if (error.code === '42703' || (error.message || '').includes('does not exist')) {
+          console.warn("Table 'projet_membres' introuvable, retourne []");
+          return [];
+        }
+        console.warn('getProjectMembers error:', error);
+        return [];
+      }
+
+      if (!Array.isArray(data)) return [];
+
+      const mappedMembers = data.map((member: any) => ({
+        id: member.id,
+        projet_id: member.projet_id,
+        user_id: member.user_id,
+        role: member.role,
+        added_by: member.added_by,
+        added_at: new Date(member.added_at || member.created_at),
+        user: member.user ? {
+          id: member.user.id,
+          nom: member.user.nom,
+          prenom: member.user.prenom,
+          fonction: member.user.fonction,
+          departement: member.user.departement_id ? 'Département' : 'Non assigné',
+          email: member.user.email,
+          role: member.user.role,
+          created_at: new Date(member.user.created_at)
+        } : undefined
+      }));
+
+      return mappedMembers;
+    } catch (e) {
+      console.error('getProjectMembers fatal error:', e);
+      return [];
+    }
+  }
+
+  // Add member to project
+  static async addProjectMember(projetId: string, userId: string, addedBy: string, role: 'membre' | 'responsable' = 'membre'): Promise<ProjetMembre> {
+    // Essayer d'abord avec added_by, puis sans si la colonne n'existe pas
+    let insertData: any = {
+      projet_id: projetId,
+      user_id: userId,
+      role: role
+    };
+
+    // Essayer d'ajouter added_by si possible
+    try {
+      insertData.added_by = addedBy;
+    } catch (e) {
+      console.warn('Colonne added_by non disponible, insertion sans cette colonne');
+    }
+
+    const { data, error } = await supabase
+      .from('projet_membres')
+      .insert(insertData)
+      .select(`
+        *,
+        user:users!projet_membres_user_id_fkey(*)
+      `)
+      .single();
+
+    if (error) {
+      // Si l'erreur est due à added_by, réessayer sans cette colonne
+      if (error.message.includes('added_by')) {
+        console.warn('Retry sans added_by:', error.message);
+        const { data: retryData, error: retryError } = await supabase
+          .from('projet_membres')
+          .insert({
+            projet_id: projetId,
+            user_id: userId,
+            role: role
+          })
+          .select(`
+            *,
+            user:users!projet_membres_user_id_fkey(*)
+          `)
+          .single();
+
+        if (retryError) throw retryError;
+
+        return {
+          id: retryData.id,
+          projet_id: retryData.projet_id,
+          user_id: retryData.user_id,
+          role: retryData.role,
+          added_by: addedBy, // Utiliser la valeur passée en paramètre
+          added_at: new Date(retryData.added_at || retryData.created_at),
+          user: retryData.user ? {
+            id: retryData.user.id,
+            nom: retryData.user.nom,
+            prenom: retryData.user.prenom,
+            fonction: retryData.user.fonction,
+            departement: retryData.user.departement_id ? 'Département' : 'Non assigné',
+            email: retryData.user.email,
+            role: retryData.user.role,
+            created_at: new Date(retryData.user.created_at)
+          } : undefined
+        };
+      }
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      projet_id: data.projet_id,
+      user_id: data.user_id,
+      role: data.role,
+      added_by: data.added_by || addedBy, // Fallback si added_by est null
+      added_at: new Date(data.added_at || data.created_at),
+      user: data.user ? {
+        id: data.user.id,
+        nom: data.user.nom,
+        prenom: data.user.prenom,
+        fonction: data.user.fonction,
+        departement: data.user.departement_id ? 'Département' : 'Non assigné',
+        email: data.user.email,
+        role: data.user.role,
+        created_at: new Date(data.user.created_at)
+      } : undefined
+    };
+  }
+
+  // Remove member from project
+  static async removeProjectMember(projetId: string, userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('projet_membres')
+      .delete()
+      .eq('projet_id', projetId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  }
+
+  // Check if user has tasks in project
+  static async userHasTasksInProject(projetId: string, userId: string): Promise<boolean> {
+    // First, get all task IDs for the project
+    const { data: tasks, error: tasksError } = await supabase
+      .from('taches')
+      .select('id')
+      .eq('projet_id', projetId);
+
+    if (tasksError) throw tasksError;
+
+    if (!tasks || tasks.length === 0) {
+      return false;
+    }
+
+    const taskIds = tasks.map(task => task.id);
+
+    // Then check if user is assigned to any of these tasks
+    const { data, error } = await supabase
+      .from('tache_utilisateurs')
+      .select('id')
+      .eq('user_id', userId)
+      .in('tache_id', taskIds)
+      .limit(1);
+
+    if (error) throw error;
+    return data && data.length > 0;
+  }
+
+  // Get project member count
+  static async getProjectMemberCount(projetId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('projet_membres')
+      .select('*', { count: 'exact', head: true })
+      .eq('projet_id', projetId);
+
+    if (error) throw error;
+    return count || 0;
+  }
+
+  // Récupérer les tâches d'un projet
   static async getProjectTasks(projetId: string): Promise<Task[]> {
     try {
       const { data, error } = await supabase
@@ -707,15 +881,12 @@ export class SupabaseService {
           *,
           utilisateurs:task_users(
             user_id,
-            users!task_users_user_id_fkey (
+            users!task_users_user_id_fkey(
               id,
               nom,
               prenom,
               email,
-              fonction,
-              departement_id,
-              role,
-              created_at
+              departement_id
             )
           )
         `)
@@ -723,195 +894,14 @@ export class SupabaseService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+
+      // Transformer les données pour correspondre au format Task
+      return data.map(task => ({
+        ...task,
+        utilisateurs: task.utilisateurs?.map((tu: any) => tu.users) || []
+      }));
     } catch (error) {
       console.error('Error fetching project tasks:', error);
-      throw error;
-    }
-  }
-
-  // Project Members Management
-  static async getProjectMembers(projetId: string): Promise<ProjectMember[]> {
-    try {
-      const { data, error } = await supabase
-        .from('projet_membres')
-        .select(`
-          id,
-          projet_id,
-          user_id,
-          role,
-          added_by,
-          added_at,
-          users!projet_membres_user_id_fkey (
-            id,
-            nom,
-            prenom,
-            fonction,
-            departement_id,
-            email,
-            role,
-            created_at
-          )
-        `)
-        .eq('projet_id', projetId)
-        .order('added_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching project members:', error);
-        throw error;
-      }
-
-      return data?.map((member: any) => ({
-        id: member.id,
-        projet_id: member.projet_id,
-        user_id: member.user_id,
-        role: member.role,
-        added_by: member.added_by,
-        added_at: new Date(member.added_at),
-        user: member.users ? {
-          id: member.users.id,
-          nom: member.users.nom || '',
-          prenom: member.users.prenom || '',
-          fonction: member.users.fonction || '',
-          departement: member.users.departement || '',
-          email: member.users.email || '',
-          role: member.users.role || '',
-          created_at: new Date(member.users.created_at)
-        } : null
-      })) || [];
-    } catch (error) {
-      console.error('Error fetching project members:', error);
-      throw error;
-    }
-  }
-
-  static async addProjectMember(data: CreateProjectMemberData): Promise<ProjectMember> {
-    try {
-      const { data: result, error } = await supabase
-        .from('projet_membres')
-        .insert({
-          projet_id: data.projet_id,
-          user_id: data.user_id,
-          role: data.role,
-          added_by: data.added_by
-        })
-        .select(`
-          id,
-          projet_id,
-          user_id,
-          role,
-          added_by,
-          added_at,
-          users!projet_membres_user_id_fkey (
-            id,
-            nom,
-            prenom,
-            fonction,
-            departement_id,
-            email,
-            role,
-            created_at
-          )
-        `)
-        .single();
-
-      if (error) {
-        console.error('Error adding project member:', error);
-        throw error;
-      }
-
-      return {
-        id: result.id,
-        projet_id: result.projet_id,
-        user_id: result.user_id,
-        role: result.role,
-        added_by: result.added_by,
-        added_at: new Date(result.added_at),
-        user: result.users ? {
-          id: result.users.id,
-          nom: result.users.nom || '',
-          prenom: result.users.prenom || '',
-          fonction: result.users.fonction || '',
-          departement: result.users.departement || '',
-          email: result.users.email || '',
-          role: result.users.role || '',
-          created_at: new Date(result.users.created_at)
-        } : null
-      };
-    } catch (error) {
-      console.error('Error adding project member:', error);
-      throw error;
-    }
-  }
-
-  static async updateProjectMember(id: string, data: UpdateProjectMemberData): Promise<ProjectMember> {
-    try {
-      const { data: result, error } = await supabase
-        .from('projet_membres')
-        .update(data)
-        .eq('id', id)
-        .select(`
-          id,
-          projet_id,
-          user_id,
-          role,
-          added_by,
-          added_at,
-          users!projet_membres_user_id_fkey (
-            id,
-            nom,
-            prenom,
-            fonction,
-            departement_id,
-            email,
-            role,
-            created_at
-          )
-        `)
-        .single();
-
-      if (error) {
-        console.error('Error updating project member:', error);
-        throw error;
-      }
-
-      return {
-        id: result.id,
-        projet_id: result.projet_id,
-        user_id: result.user_id,
-        role: result.role,
-        added_by: result.added_by,
-        added_at: new Date(result.added_at),
-        user: result.users ? {
-          id: result.users.id,
-          nom: result.users.nom || '',
-          prenom: result.users.prenom || '',
-          fonction: result.users.fonction || '',
-          departement: result.users.departement || '',
-          email: result.users.email || '',
-          role: result.users.role || '',
-          created_at: new Date(result.users.created_at)
-        } : null
-      };
-    } catch (error) {
-      console.error('Error updating project member:', error);
-      throw error;
-    }
-  }
-
-  static async deleteProjectMember(id: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('projet_membres')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting project member:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error deleting project member:', error);
       throw error;
     }
   }

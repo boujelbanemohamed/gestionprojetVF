@@ -3,7 +3,6 @@ import { ArrowLeft, BarChart3, TrendingUp, Clock, Target, Users, Calendar, Downl
 import { Project, User as UserType, AuthUser } from '../types';
 import { getProjectStats } from '../utils/calculations';
 import { usePerformance } from '../hooks/usePerformance';
-import { getUserInitials } from '../utils/stringUtils';
 import * as XLSX from 'xlsx';
 
 interface PerformanceDashboardProps {
@@ -602,7 +601,7 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                              {getUserInitials(perf.user.prenom, perf.user.nom)}
+                              {perf.user.prenom.charAt(0)}{perf.user.nom.charAt(0)}
                             </div>
                             <div>
                               <div className="text-sm font-medium text-gray-900">
@@ -758,7 +757,7 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                           {proj.responsibleUser ? (
                             <div className="flex items-center space-x-2">
                               <div className="w-6 h-6 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center text-white font-semibold text-xs">
-                                {getUserInitials(proj.responsibleUser.prenom, proj.responsibleUser.nom)}
+                                {proj.responsibleUser.prenom.charAt(0)}{proj.responsibleUser.nom.charAt(0)}
                               </div>
                               <span className="text-sm text-gray-900">
                                 {proj.responsibleUser.prenom} {proj.responsibleUser.nom}

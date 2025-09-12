@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Edit2, Building, FileText, Upload, File, Trash2, Download, Calendar, User, DollarSign } from 'lucide-react';
 import { Project, Department, ProjectAttachment, User as UserType, AuthUser } from '../types';
+import { formatDateToISOString } from '../utils/dateUtils';
 
 interface ProjectEditModalProps {
   isOpen: boolean;
@@ -77,8 +78,8 @@ const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
         nouvelles_fonctionnalites: project.nouvelles_fonctionnalites || '',
         avantages: project.avantages || '',
         departement: project.departement || '',
-        dateDebut: project.date_debut ? project.date_debut.toISOString().split('T')[0] : '',
-        dateFin: project.date_fin ? project.date_fin.toISOString().split('T')[0] : ''
+        dateDebut: formatDateToISOString(project.date_debut) || '',
+        dateFin: formatDateToISOString(project.date_fin) || ''
       });
       setExistingAttachments(project.attachments || []);
       setNewAttachments([]);

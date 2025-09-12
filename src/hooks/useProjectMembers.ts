@@ -32,20 +32,8 @@ export function useProjectMembers(projetId: string) {
 
       const projectMembers = await SupabaseService.getProjectMembers(projetId);
 
-      // Normaliser les membres pour garantir que chaque membre a toujours les propriétés nécessaires
-      const normalizedMembers = projectMembers.map(member => ({
-        ...member,
-        user: member.user ? {
-          ...member.user,
-          prenom: member.user.prenom || '',
-          nom: member.user.nom || '',
-          email: member.user.email || '',
-          role: member.user.role || 'membre'
-        } : null
-      }));
-
-      console.log('useProjectMembers - Received projectMembers:', normalizedMembers);
-      setMembers(normalizedMembers);
+      console.log('useProjectMembers - Received projectMembers:', projectMembers);
+      setMembers(projectMembers);
     } catch (err) {
       console.error('useProjectMembers - Erreur lors du chargement des membres:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -62,21 +50,8 @@ export function useProjectMembers(projetId: string) {
   const addMember = async (userId: string, addedBy: string, role: 'membre' | 'responsable' = 'membre') => {
     try {
       const newMember = await SupabaseService.addProjectMember(projetId, userId, addedBy, role);
-      
-      // Normaliser le nouveau membre
-      const normalizedMember = {
-        ...newMember,
-        user: newMember.user ? {
-          ...newMember.user,
-          prenom: newMember.user.prenom || '',
-          nom: newMember.user.nom || '',
-          email: newMember.user.email || '',
-          role: newMember.user.role || 'membre'
-        } : null
-      };
-      
-      setMembers(prev => [...prev, normalizedMember]);
-      return normalizedMember;
+      setMembers(prev => [...prev, newMember]);
+      return newMember;
     } catch (err) {
       console.error('Erreur lors de l\'ajout du membre:', err);
       throw err;

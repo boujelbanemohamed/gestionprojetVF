@@ -531,19 +531,7 @@ function App() {
   const getCurrentProject = () => {
     if (currentRoute.component === 'project-detail' && currentRoute.params?.projectId) {
       // Check both active and closed projects
-      const project = [...accessibleProjects, ...accessibleClosedProjects].find(p => p.id === currentRoute.params!.projectId);
-      
-      if (!project) {
-        console.error('Project not found:', currentRoute.params.projectId);
-        console.error('Available projects:', accessibleProjects.map(p => ({ id: p.id, nom: p.nom })));
-        console.error('Available closed projects:', accessibleClosedProjects.map(p => ({ id: p.id, nom: p.nom })));
-        
-        // Redirect to dashboard if project not found
-        Router.navigate('dashboard');
-        return null;
-      }
-      
-      return project;
+      return [...accessibleProjects, ...accessibleClosedProjects].find(p => p.id === currentRoute.params!.projectId);
     }
     return null;
   };
@@ -604,17 +592,15 @@ function App() {
       )}
       
       {currentRoute.component === 'project-detail' && currentProject && (
-        <ErrorBoundary>
-          <ProjectDetail
-            project={currentProject}
-            onBack={handleBackToDashboard}
-            onUpdateProject={handleUpdateProject}
-            availableUsers={users}
-            departments={departments}
-            currentUser={currentUser}
-            meetingMinutes={meetingMinutes}
-          />
-        </ErrorBoundary>
+        <ProjectDetail
+          project={currentProject}
+          onBack={handleBackToDashboard}
+          onUpdateProject={handleUpdateProject}
+          availableUsers={users}
+          departments={departments}
+          currentUser={currentUser}
+          meetingMinutes={meetingMinutes}
+        />
       )}
       
       {currentRoute.component === 'members' && (
