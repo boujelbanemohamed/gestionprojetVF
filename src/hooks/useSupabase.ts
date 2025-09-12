@@ -9,112 +9,111 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
     let isMounted = true;
-    
-    // Timeout de sécurité pour éviter les chargements infinis
-    timeoutId = setTimeout(() => {
-      if (isMounted) {
-        console.warn('Timeout d\'authentification - arrêt du chargement');
-        setLoading(false);
-      }
-    }, 10000); // 10 secondes max
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
-        
-        // Annuler le timeout car on a une réponse
-        clearTimeout(timeoutId);
-        
-        if (!isMounted) return; // Éviter les mises à jour si le composant est démonté
-        
-        if (event === 'INITIAL_SESSION') {
-          // Gérer la session initiale
-          if (session?.user) {
-            try {
-              const currentUser = await SupabaseService.getCurrentUser();
-              if (isMounted) {
-                setUser(currentUser);
-                setLoading(false);
-              }
-            } catch (error) {
-              console.error('Erreur lors de la récupération de l\'utilisateur initial:', error);
-              if (isMounted) {
-                setUser(null);
-                setLoading(false);
-              }
-            }
-          } else {
-            if (isMounted) {
-              setUser(null);
-              setLoading(false);
-            }
+    // Fonction pour traiter une session
+    const handleSession = async (session: any) => {
+      if (!isMounted) return;
+
+      if (session?.user) {
+        try {
+          console.log('Récupération du profil utilisateur pour:', session.user.email);
+          const currentUser = await SupabaseService.getCurrentUser();
+          if (isMounted) {
+            setUser(currentUser);
+            setLoading(false);
           }
-        } else if (event === 'SIGNED_IN') {
-          // Utilisateur connecté
-          try {
-            const currentUser = await SupabaseService.getCurrentUser();
-            if (isMounted) {
-              setUser(currentUser);
-              setLoading(false);
-            }
-          } catch (error) {
-            console.error('Erreur lors de la récupération du profil utilisateur:', error);
-            if (isMounted) {
-              setUser(null);
-              setLoading(false);
-            }
-          }
-        } else if (event === 'SIGNED_OUT') {
-          // Utilisateur déconnecté
+        } catch (error) {
+          console.error('Erreur lors de la récupération du profil utilisateur:', error);
           if (isMounted) {
             setUser(null);
             setLoading(false);
           }
-        } else if (event === 'TOKEN_REFRESHED') {
-          // Token rafraîchi
-          if (session?.user) {
-            try {
-              const currentUser = await SupabaseService.getCurrentUser();
-              if (isMounted) {
-                setUser(currentUser);
-                setLoading(false);
-              }
-            } catch (error) {
-              console.error('Erreur lors du rafraîchissement du profil utilisateur:', error);
-              if (isMounted) {
-                setUser(null);
-                setLoading(false);
-              }
-            }
-          } else if (isMounted) {
+        }
+      } else {
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
+      }
+    };
+
+    // Récupérer la session initiale au montage
+    const getInitialSession = async () => {
+      try {
+        console.log('Récupération de la session initiale...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Erreur lors de la récupération de la session initiale:', error);
+          if (isMounted) {
+            setUser(null);
             setLoading(false);
           }
+          return;
+        }
+
+        await handleSession(session);
+      } catch (error) {
+        console.error('Erreur lors de la récupération de la session initiale:', error);
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
+      }
+    };
+
+    // Écouter les changements d'état d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
+        
+        if (!isMounted) return;
+
+        switch (event) {
+          case 'SIGNED_IN':
+            console.log('Utilisateur connecté');
+            await handleSession(session);
+            break;
+            
+          case 'SIGNED_OUT':
+            console.log('Utilisateur déconnecté');
+            if (isMounted) {
+              setUser(null);
+              setLoading(false);
+            }
+            break;
+            
+          case 'TOKEN_REFRESHED':
+            console.log('Token rafraîchi');
+            await handleSession(session);
+            break;
+            
+          default:
+            // Pour les autres événements, ne rien faire
+            break;
         }
       }
     );
 
+    // Récupérer la session initiale
+    getInitialSession();
+
     return () => {
       isMounted = false;
-      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, []); // Supprimer la dépendance loading
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
-      // S'assurer que l'état de chargement est correct
       setLoading(true);
-      
       const data = await SupabaseService.signIn(email, password);
-      
       // L'état sera mis à jour par onAuthStateChange
       return data;
     } catch (error) {
       console.error('Erreur lors de la connexion:', error);
-      setLoading(false); // Arrêter le chargement en cas d'erreur
+      setLoading(false);
       throw error;
     }
   };
@@ -127,8 +126,7 @@ export function useAuth() {
   const signOut = async () => {
     try {
       await SupabaseService.signOut();
-      setUser(null);
-      setLoading(false);
+      // L'état sera mis à jour par onAuthStateChange
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
       // Forcer la déconnexion même en cas d'erreur
