@@ -625,7 +625,7 @@ function App() {
           project={currentProject}
           onBack={handleBackToDashboard}
           onUpdateProject={handleUpdateProject}
-          availableUsers={projectMembers.map(member => member.user!).filter(Boolean) as User[]}
+          availableUsers={users}
           departments={departments}
           currentUser={currentUser}
           meetingMinutes={meetingMinutes}
