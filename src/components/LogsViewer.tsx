@@ -1,17 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Trash2, RefreshCw, Filter, Search, AlertTriangle, Info, XCircle, CheckCircle } from 'lucide-react';
+import { LogsService, LogEntry, LogStats } from '../services/logsService';
 
-interface LogEntry {
-  id: string;
-  timestamp: Date;
-  level: 'error' | 'warn' | 'info' | 'debug';
-  message: string;
-  context?: string;
-  stack?: string;
-  userId?: string;
-  url?: string;
-  userAgent?: string;
-}
+// Utiliser l'interface LogEntry du service
 
 interface LogsViewerProps {
   isOpen: boolean;
@@ -23,96 +14,62 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ isOpen, onClose }) => {
   const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState<string>('all');
+  const [contextFilter, setContextFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [stats, setStats] = useState<LogStats | null>(null);
+  const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
 
-  // Collecter les logs depuis la console
-  const collectLogs = () => {
+  // Charger les logs depuis la base de données
+  const loadLogs = async () => {
     setIsLoading(true);
-    
-    // Simuler la collecte de logs depuis différentes sources
-    const collectedLogs: LogEntry[] = [];
-    
-    // Logs d'erreur JavaScript
-    const errorLogs = window.console.error ? [] : [];
-    
-    // Logs de performance
-    if (window.performance && window.performance.getEntriesByType) {
-      const perfEntries = window.performance.getEntriesByType('navigation');
-      perfEntries.forEach(entry => {
-        collectedLogs.push({
-          id: `perf-${Date.now()}-${Math.random()}`,
-          timestamp: new Date(),
-          level: 'info',
-          message: `Page load time: ${entry.duration.toFixed(2)}ms`,
-          context: 'performance'
-        });
-      });
+    try {
+      const [logsData, statsData] = await Promise.all([
+        LogsService.getLogs(levelFilter === 'all' ? undefined : levelFilter, contextFilter === 'all' ? undefined : contextFilter),
+        LogsService.getLogsStats()
+      ]);
+      
+      setLogs(logsData);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Erreur lors du chargement des logs:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Logs d'erreur réseau (simulés)
-    const networkErrors = [
-      {
-        id: `network-${Date.now()}-1`,
-        timestamp: new Date(Date.now() - 300000), // 5 minutes ago
-        level: 'error' as const,
-        message: 'Failed to fetch project members: 400 Bad Request',
-        context: 'network',
-        url: '/api/project-members'
-      },
-      {
-        id: `network-${Date.now()}-2`,
-        timestamp: new Date(Date.now() - 180000), // 3 minutes ago
-        level: 'error' as const,
-        message: 'Supabase query failed: column users_1.departement does not exist',
-        context: 'database',
-        url: '/api/projects'
-      }
-    ];
-    
-    // Logs d'application
-    const appLogs = [
-      {
-        id: `app-${Date.now()}-1`,
-        timestamp: new Date(Date.now() - 600000), // 10 minutes ago
-        level: 'info' as const,
-        message: 'User logged in successfully',
-        context: 'auth',
-        userId: 'current-user-id'
-      },
-      {
-        id: `app-${Date.now()}-2`,
-        timestamp: new Date(Date.now() - 240000), // 4 minutes ago
-        level: 'warn' as const,
-        message: 'Project data not found for ID: 815ce7ad-5bec-4307-b9b8-6fbd1bdc885c',
-        context: 'project-detail'
-      },
-      {
-        id: `app-${Date.now()}-3`,
-        timestamp: new Date(Date.now() - 120000), // 2 minutes ago
-        level: 'error' as const,
-        message: 'ErrorBoundary caught error: Cannot read property of undefined',
-        context: 'error-boundary',
-        stack: 'TypeError: Cannot read property of undefined\n    at ProjectDetail.tsx:123:45'
-      }
-    ];
-    
-    const allLogs = [...collectedLogs, ...networkErrors, ...appLogs];
-    setLogs(allLogs);
-    setFilteredLogs(allLogs);
-    setIsLoading(false);
+  };
+
+  // Rechercher dans les logs
+  const searchLogs = async () => {
+    if (!searchTerm.trim()) {
+      loadLogs();
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const searchResults = await LogsService.searchLogs(
+        searchTerm,
+        levelFilter === 'all' ? undefined : levelFilter,
+        contextFilter === 'all' ? undefined : contextFilter
+      );
+      setLogs(searchResults);
+    } catch (error) {
+      console.error('Erreur lors de la recherche des logs:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     if (isOpen) {
-      collectLogs();
+      loadLogs();
     }
   }, [isOpen]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (autoRefresh && isOpen) {
-      interval = setInterval(collectLogs, 5000); // Refresh every 5 seconds
+      interval = setInterval(loadLogs, 5000); // Refresh every 5 seconds
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -120,23 +77,8 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ isOpen, onClose }) => {
   }, [autoRefresh, isOpen]);
 
   useEffect(() => {
-    let filtered = logs;
-    
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(log => 
-        log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.context?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    // Filter by level
-    if (levelFilter !== 'all') {
-      filtered = filtered.filter(log => log.level === levelFilter);
-    }
-    
-    setFilteredLogs(filtered);
-  }, [logs, searchTerm, levelFilter]);
+    setFilteredLogs(logs);
+  }, [logs]);
 
   const getLevelIcon = (level: string) => {
     switch (level) {
@@ -170,12 +112,15 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ isOpen, onClose }) => {
 
   const exportLogs = () => {
     const logData = filteredLogs.map(log => ({
-      timestamp: log.timestamp.toISOString(),
+      timestamp: log.created_at.toISOString(),
       level: log.level,
       message: log.message,
       context: log.context,
-      userId: log.userId,
-      url: log.url
+      user_id: log.user_id,
+      url: log.url,
+      user_agent: log.user_agent,
+      stack_trace: log.stack_trace,
+      metadata: log.metadata
     }));
     
     const blob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
@@ -189,10 +134,31 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ isOpen, onClose }) => {
     URL.revokeObjectURL(url);
   };
 
-  const clearLogs = () => {
-    if (window.confirm('Êtes-vous sûr de vouloir effacer tous les logs ?')) {
-      setLogs([]);
-      setFilteredLogs([]);
+  const deleteSelectedLogs = async () => {
+    if (selectedLogs.length === 0) {
+      alert('Aucun log sélectionné');
+      return;
+    }
+
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${selectedLogs.length} log(s) ?`)) {
+      const success = await LogsService.deleteLogs(selectedLogs);
+      if (success) {
+        setSelectedLogs([]);
+        loadLogs(); // Recharger les logs
+      } else {
+        alert('Erreur lors de la suppression des logs');
+      }
+    }
+  };
+
+  const clearAllLogs = async () => {
+    if (window.confirm('Êtes-vous sûr de vouloir effacer tous les logs ? Cette action est irréversible.')) {
+      const success = await LogsService.cleanupOldLogs();
+      if (success) {
+        loadLogs(); // Recharger les logs
+      } else {
+        alert('Erreur lors du nettoyage des logs');
+      }
     }
   };
 
@@ -250,10 +216,25 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ isOpen, onClose }) => {
               <option value="debug">Debug</option>
             </select>
 
+            {/* Context Filter */}
+            <select
+              value={contextFilter}
+              onChange={(e) => setContextFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">Tous les contextes</option>
+              <option value="application">Application</option>
+              <option value="auth">Authentification</option>
+              <option value="database">Base de données</option>
+              <option value="network">Réseau</option>
+              <option value="error-boundary">Error Boundary</option>
+              <option value="performance">Performance</option>
+            </select>
+
             {/* Actions */}
             <div className="flex items-center space-x-2">
               <button
-                onClick={collectLogs}
+                onClick={loadLogs}
                 disabled={isLoading}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2"
               >
@@ -282,15 +263,56 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ isOpen, onClose }) => {
               </button>
 
               <button
-                onClick={clearLogs}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2"
+                onClick={deleteSelectedLogs}
+                disabled={selectedLogs.length === 0}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>Effacer</span>
+                <span>Supprimer sélectionnés</span>
+              </button>
+
+              <button
+                onClick={clearAllLogs}
+                className="px-4 py-2 bg-red-800 text-white rounded-lg hover:bg-red-900 flex items-center space-x-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Nettoyer anciens</span>
               </button>
             </div>
           </div>
         </div>
+
+        {/* Statistics */}
+        {stats && (
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">{stats.total_logs}</div>
+                <div className="text-gray-500">Total</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{stats.error_count}</div>
+                <div className="text-gray-500">Erreurs</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-600">{stats.warn_count}</div>
+                <div className="text-gray-500">Avertissements</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{stats.info_count}</div>
+                <div className="text-gray-500">Infos</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{stats.debug_count}</div>
+                <div className="text-gray-500">Debug</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{stats.last_24h_count}</div>
+                <div className="text-gray-500">24h</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Logs List */}
         <div className="flex-1 overflow-auto p-6">
@@ -313,6 +335,18 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ isOpen, onClose }) => {
                   className={`p-4 rounded-lg border ${getLevelColor(log.level)}`}
                 >
                   <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedLogs.includes(log.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedLogs([...selectedLogs, log.id]);
+                        } else {
+                          setSelectedLogs(selectedLogs.filter(id => id !== log.id));
+                        }
+                      }}
+                      className="mt-1"
+                    />
                     {getLevelIcon(log.level)}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
@@ -320,7 +354,7 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ isOpen, onClose }) => {
                           {log.message}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {log.timestamp.toLocaleTimeString()}
+                          {log.created_at.toLocaleTimeString()}
                         </span>
                       </div>
                       
@@ -330,21 +364,21 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ isOpen, onClose }) => {
                             {log.context}
                           </span>
                         )}
-                        {log.userId && (
-                          <span>User: {log.userId}</span>
+                        {log.user_id && (
+                          <span>User: {log.user_id}</span>
                         )}
                         {log.url && (
                           <span>URL: {log.url}</span>
                         )}
                       </div>
                       
-                      {log.stack && (
+                      {log.stack_trace && (
                         <details className="mt-2">
                           <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">
                             Voir la stack trace
                           </summary>
                           <pre className="mt-2 text-xs text-gray-700 bg-gray-100 p-2 rounded overflow-auto">
-                            {log.stack}
+                            {log.stack_trace}
                           </pre>
                         </details>
                       )}

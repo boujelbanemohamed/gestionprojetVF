@@ -24,6 +24,7 @@ import ProjectInfoModal from './ProjectInfoModal';
 import ProjectMeetingMinutesModal from './ProjectMeetingMinutesModal';
 import { checkCanCloseProject, checkCanReopenProject } from '../utils/permissions';
 import { useProjectMembers } from '../hooks/useProjectMembers';
+import { getUserInitials } from '../utils/stringUtils';
 import { 
   createHistoryEntry, 
   addTaskCreatedHistory, 
@@ -1032,7 +1033,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
                     <div key={member.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                          {getUserInitials(user.prenom, user.nom)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2">

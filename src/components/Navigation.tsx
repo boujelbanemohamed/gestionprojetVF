@@ -5,6 +5,7 @@ import { PermissionService } from '../utils/permissions';
 import { Router } from '../utils/router';
 import NotificationsPanel from './NotificationsPanel';
 import LogsViewer from './LogsViewer';
+import { getUserInitials } from '../utils/stringUtils';
 
 interface NavigationProps {
   currentUser: AuthUser;
@@ -174,7 +175,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 className="flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                  {currentUser.prenom.charAt(0)}{currentUser.nom.charAt(0)}
+                  {getUserInitials(currentUser.prenom, currentUser.nom)}
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium text-gray-900">
@@ -201,7 +202,7 @@ const Navigation: React.FC<NavigationProps> = ({
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {currentUser.prenom.charAt(0)}{currentUser.nom.charAt(0)}
+                          {getUserInitials(currentUser.prenom, currentUser.nom)}
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
