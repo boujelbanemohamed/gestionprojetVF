@@ -32,7 +32,7 @@ const ProjectInfoModal: React.FC<ProjectInfoModalProps> = ({
     : null;
 
   const handleExportPdf = () => {
-    exportProjectToPdf(project);
+    exportProjectToPdf(project, projectMembers, availableUsers);
   };
 
   return (
