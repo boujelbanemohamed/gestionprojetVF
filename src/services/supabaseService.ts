@@ -1,7 +1,14 @@
 import { supabase } from './supabase';
 import { AuthUser, User, Department, Project, Task, Comment } from '../types';
 import { formatDateToISOString } from '../utils/dateUtils';
+import { AuthService, UserService, ProjectService, TaskService, CommentService, FileService } from './index';
+import { handleError, withErrorHandling } from '../utils/errorHandler';
+import { TABLES } from '../constants/tables';
 
+/**
+ * @deprecated Utilisez les services spécialisés (AuthService, UserService, etc.) à la place
+ * Ce service est maintenu pour la compatibilité avec le code existant
+ */
 export class SupabaseService {
   // Authentication
   static async signUp(email: string, password: string, userData: {
@@ -12,33 +19,19 @@ export class SupabaseService {
     role?: 'SUPER_ADMIN' | 'ADMIN' | 'UTILISATEUR';
   }) {
     // Vérifier si l'utilisateur existe déjà dans notre table users
-    const userExists = await this.checkUserExists(email);
+    const userExists = await UserService.checkUserExists(email);
     if (userExists) {
       throw new Error('Un utilisateur avec cet email existe déjà');
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: userData
-      }
-    });
-
-    if (error) {
-      // Si l'erreur est "User already registered", l'utilisateur existe dans Auth mais pas dans notre table
-      if (error.message?.includes('already registered') || error.message?.includes('User already registered')) {
-        throw new Error('Un utilisateur avec cet email existe déjà dans le système d\'authentification. Veuillez utiliser un email différent ou contacter l\'administrateur.');
-      }
-      throw error;
-    }
-
+    const authData = await AuthService.signUp(email, password, userData);
+    
     // Si l'inscription a réussi et qu'un utilisateur a été créé, l'ajouter à la table users
-    if (data.user) {
-      return await this.createUserProfile(data.user.id, email, userData);
+    if (authData.user) {
+      return await UserService.createUserProfile(authData.user.id, email, userData);
     }
 
-    return data;
+    return authData;
   }
 
   // Fonction helper pour créer le profil utilisateur
@@ -87,85 +80,20 @@ export class SupabaseService {
   }
 
   static async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) throw error;
-    return data;
+    return AuthService.signIn(email, password);
   }
 
   static async signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    return AuthService.signOut();
   }
 
   // Vérifier si un utilisateur existe déjà par email
   static async checkUserExists(email: string): Promise<boolean> {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erreur lors de la vérification de l\'utilisateur:', error);
-        return false;
-      }
-
-      return !!data;
-    } catch (error) {
-      console.error('Erreur lors de la vérification de l\'utilisateur:', error);
-      return false;
-    }
+    return UserService.checkUserExists(email);
   }
 
   static async getCurrentUser(): Promise<AuthUser | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) return null;
-
-    try {
-      const { data: profile, error } = await supabase
-        .from('users')
-        .select(`
-          *,
-          departements(nom)
-        `)
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Erreur lors de la récupération du profil utilisateur:', error);
-        // Retourner un utilisateur basique si le profil n'existe pas
-        return {
-          id: user.id,
-          nom: user.user_metadata?.nom || 'Utilisateur',
-          prenom: user.user_metadata?.prenom || 'Anonyme',
-          email: user.email || '',
-          fonction: user.user_metadata?.fonction || 'Non défini',
-          departement: 'Non assigné',
-          role: 'UTILISATEUR',
-          created_at: new Date(user.created_at)
-        };
-      }
-
-      return {
-        id: profile.id,
-        nom: profile.nom,
-        prenom: profile.prenom,
-        email: profile.email,
-        fonction: profile.fonction,
-        departement: profile.departements?.nom || 'Non assigné',
-        role: profile.role,
-        created_at: new Date(profile.created_at)
-      };
-    } catch (error) {
-      console.error('Erreur lors de la récupération du profil utilisateur:', error);
-      return null;
-    }
+    return AuthService.getCurrentUser();
   }
 
   // Departments
