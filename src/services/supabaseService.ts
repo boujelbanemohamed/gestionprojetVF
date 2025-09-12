@@ -696,7 +696,7 @@ export class SupabaseService {
           role,
           added_by,
           added_at,
-          users!projet_membres_user_id_fkey (
+          users (
             id,
             nom,
             prenom,
@@ -756,7 +756,7 @@ export class SupabaseService {
           role,
           added_by,
           added_at,
-          users!projet_membres_user_id_fkey (
+          users (
             id,
             nom,
             prenom,
@@ -811,7 +811,7 @@ export class SupabaseService {
           role,
           added_by,
           added_at,
-          users!projet_membres_user_id_fkey (
+          users (
             id,
             nom,
             prenom,
