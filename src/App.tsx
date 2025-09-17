@@ -626,9 +626,12 @@ function App() {
           
           {/* Debug button - temporary */}
           <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Debug - État des données</h3>
+            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Debug - État des données (v2.1)</h3>
             <p className="text-sm text-yellow-700 mb-2">
               Projets: {projects.length} | Utilisateurs: {users.length} | Départements: {departments.length}
+            </p>
+            <p className="text-xs text-yellow-600 mb-2">
+              Version: {new Date().toISOString()} | User: {currentUser?.email || 'Non connecté'}
             </p>
             <button
               onClick={() => {
