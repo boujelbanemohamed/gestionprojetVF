@@ -55,17 +55,9 @@ export class SupabaseService {
 
       if (error) {
         console.error('Erreur lors de la récupération du profil utilisateur:', error);
-        // Retourner un utilisateur basique si le profil n'existe pas
-        return {
-          id: user.id,
-          nom: user.user_metadata?.nom || 'Utilisateur',
-          prenom: user.user_metadata?.prenom || 'Anonyme',
-          email: user.email || '',
-          fonction: user.user_metadata?.fonction || 'Non défini',
-          departement: 'Non assigné',
-          role: 'UTILISATEUR',
-          created_at: new Date(user.created_at)
-        };
+        console.log('[SupabaseService.getCurrentUser] Profil non trouvé dans table users, retour null');
+        // Retourner null si le profil n'existe pas - pas de création automatique
+        return null;
       }
 
       return {

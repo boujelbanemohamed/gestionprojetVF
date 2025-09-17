@@ -34,9 +34,18 @@ export function useAuth() {
           // Gérer la session initiale
           if (session?.user) {
             try {
+              console.log('[useAuth] INITIAL_SESSION - Récupération du profil utilisateur...');
               const currentUser = await SupabaseService.getCurrentUser();
+              console.log('[useAuth] Utilisateur récupéré depuis table users:', currentUser);
+              
               if (isMounted) {
-                setUser(currentUser);
+                if (currentUser) {
+                  console.log('[useAuth] INITIAL_SESSION - Utilisateur connecté:', currentUser.email);
+                  setUser(currentUser);
+                } else {
+                  console.log('[useAuth] INITIAL_SESSION - Profil non trouvé dans table users, déconnexion');
+                  setUser(null);
+                }
                 setLoading(false);
               }
             } catch (error) {
@@ -55,9 +64,18 @@ export function useAuth() {
         } else if (event === 'SIGNED_IN') {
           // Utilisateur connecté
           try {
+            console.log('[useAuth] SIGNED_IN - Récupération du profil utilisateur...');
             const currentUser = await SupabaseService.getCurrentUser();
+            console.log('[useAuth] Utilisateur récupéré depuis table users:', currentUser);
+            
             if (isMounted) {
-              setUser(currentUser);
+              if (currentUser) {
+                console.log('[useAuth] SIGNED_IN - Utilisateur connecté:', currentUser.email);
+                setUser(currentUser);
+              } else {
+                console.log('[useAuth] SIGNED_IN - Profil non trouvé dans table users, déconnexion');
+                setUser(null);
+              }
               setLoading(false);
             }
           } catch (error) {
