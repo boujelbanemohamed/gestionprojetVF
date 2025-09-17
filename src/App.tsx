@@ -52,6 +52,16 @@ function App() {
   console.log('[App] users:', users);
   console.log('[App] projects:', projects);
   
+  // Force data loading when user is connected
+  useEffect(() => {
+    if (currentUser && !authLoading) {
+      console.log('[App] Utilisateur connecté, vérification des données...');
+      console.log('[App] Nombre de projets:', projects.length);
+      console.log('[App] Nombre d\'utilisateurs:', users.length);
+      console.log('[App] Nombre de départements:', departments.length);
+    }
+  }, [currentUser, authLoading, projects, users, departments]);
+  
   const [currentRoute, setCurrentRoute] = useState<RouteConfig>(Router.getCurrentRoute());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -613,6 +623,23 @@ function App() {
             onNavigateToProject={handleSelectProject}
             onNavigateToUser={(userId) => handleNavigate('members')}
           />
+          
+          {/* Debug button - temporary */}
+          <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
+            <h3 className="text-lg font-semibold text-yellow-800 mb-2">Debug - État des données</h3>
+            <p className="text-sm text-yellow-700 mb-2">
+              Projets: {projects.length} | Utilisateurs: {users.length} | Départements: {departments.length}
+            </p>
+            <button
+              onClick={() => {
+                console.log('[Debug] Forçage du rechargement des données...');
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+            >
+              Recharger les données
+            </button>
+          </div>
         </div>
       )}
 
