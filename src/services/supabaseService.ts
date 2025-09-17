@@ -86,18 +86,32 @@ export class SupabaseService {
 
   // Departments
   static async getDepartments(): Promise<Department[]> {
-    const { data, error } = await supabase
-      .from('departements')
-      .select('*')
-      .order('nom');
+    console.log('[SupabaseService.getDepartments] Début de la requête...');
+    
+    try {
+      const { data, error } = await supabase
+        .from('departements')
+        .select('*')
+        .order('nom');
 
-    if (error) throw error;
+      console.log('[SupabaseService.getDepartments] Réponse de la requête:', { data, error });
 
-    return data.map(dept => ({
-      id: dept.id,
-      nom: dept.nom,
-      created_at: new Date(dept.created_at)
-    }));
+      if (error) {
+        console.error('[SupabaseService.getDepartments] Erreur:', error);
+        throw error;
+      }
+
+      console.log('[SupabaseService.getDepartments] Nombre de départements trouvés:', data?.length || 0);
+
+      return data.map(dept => ({
+        id: dept.id,
+        nom: dept.nom,
+        created_at: new Date(dept.created_at)
+      }));
+    } catch (error) {
+      console.error('[SupabaseService.getDepartments] Erreur fatale:', error);
+      throw error;
+    }
   }
 
   static async createDepartment(nom: string): Promise<Department> {
@@ -144,26 +158,40 @@ export class SupabaseService {
 
   // Users
   static async getUsers(): Promise<User[]> {
-    const { data, error } = await supabase
-      .from('users')
-      .select(`
-        *,
-        departements(nom)
-      `)
-      .order('created_at', { ascending: false });
+    console.log('[SupabaseService.getUsers] Début de la requête...');
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          *,
+          departements(nom)
+        `)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      console.log('[SupabaseService.getUsers] Réponse de la requête:', { data, error });
 
-    return data.map(user => ({
-      id: user.id,
-      nom: user.nom,
-      prenom: user.prenom,
-      email: user.email,
-      fonction: user.fonction,
-      departement: user.departements?.nom || 'Non assigné',
-      role: user.role,
-      created_at: new Date(user.created_at)
-    }));
+      if (error) {
+        console.error('[SupabaseService.getUsers] Erreur:', error);
+        throw error;
+      }
+
+      console.log('[SupabaseService.getUsers] Nombre d\'utilisateurs trouvés:', data?.length || 0);
+
+      return data.map(user => ({
+        id: user.id,
+        nom: user.nom,
+        prenom: user.prenom,
+        email: user.email,
+        fonction: user.fonction,
+        departement: user.departements?.nom || 'Non assigné',
+        role: user.role,
+        created_at: new Date(user.created_at)
+      }));
+    } catch (error) {
+      console.error('[SupabaseService.getUsers] Erreur fatale:', error);
+      throw error;
+    }
   }
 
   static async updateUser(id: string, userData: {
@@ -209,75 +237,54 @@ export class SupabaseService {
 
   // Projects
   static async getProjects(): Promise<Project[]> {
-    const { data, error } = await supabase
-      .from('projets')
-      .select(`
-        *,
-        departements(nom),
-        taches(
+    console.log('[SupabaseService.getProjects] Début de la requête...');
+    
+    try {
+      // Requête simplifiée pour éviter les erreurs de jointures complexes
+      const { data, error } = await supabase
+        .from('projets')
+        .select(`
           *,
-          utilisateurs:task_users(
-            user_id,
-            users!task_users_user_id_fkey(
-              id,
-              nom,
-              prenom,
-              email,
-              fonction,
-              departement_id
-            )
-          ),
-          commentaires(
-            *,
-            users!commentaires_auteur_id_fkey(nom, prenom, email, fonction, role)
-          )
-        )
-      `)
-      .order('created_at', { ascending: false });
+          departements(nom)
+        `)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      console.log('[SupabaseService.getProjects] Réponse de la requête:', { data, error });
 
-    return data.map(project => ({
-      id: project.id,
-      nom: project.nom,
-      type_projet: project.type_projet,
-      description: project.description,
-      responsable_id: project.responsable_id,
-      budget_initial: project.budget_initial,
-      devise: project.devise,
-      prestataire_externe: project.prestataire_externe,
-      nouvelles_fonctionnalites: project.nouvelles_fonctionnalites,
-      avantages: project.avantages,
-      departement: project.departements?.nom,
-      date_debut: project.date_debut ? new Date(project.date_debut) : undefined,
-      date_fin: project.date_fin ? new Date(project.date_fin) : undefined,
-      statut: project.statut,
-      date_cloture: project.date_cloture ? new Date(project.date_cloture) : undefined,
-      cloture_par: project.cloture_par,
-      date_reouverture: project.date_reouverture ? new Date(project.date_reouverture) : undefined,
-      reouvert_par: project.reouvert_par,
-      created_at: new Date(project.created_at),
-      updated_at: new Date(project.updated_at),
-      taches: (project.taches || []).map((task: any) => ({
-        id: task.id,
-        nom: task.nom,
-        description: task.description,
-        scenario_execution: task.scenario_execution,
-        criteres_acceptation: task.criteres_acceptation,
-        etat: task.etat,
-        date_realisation: new Date(task.date_realisation),
-        projet_id: task.projet_id,
-        utilisateurs: (task.utilisateurs || []).map((tu: any) => tu.users).filter(Boolean),
-        commentaires: (task.commentaires || []).map((comment: any) => ({
-          id: comment.id,
-          contenu: comment.contenu,
-          auteur: comment.users,
-          created_at: new Date(comment.created_at),
-          task_id: comment.tache_id
-        })),
-        history: []
-      }))
-    }));
+      if (error) {
+        console.error('[SupabaseService.getProjects] Erreur:', error);
+        throw error;
+      }
+
+      console.log('[SupabaseService.getProjects] Nombre de projets trouvés:', data?.length || 0);
+
+      return data.map(project => ({
+        id: project.id,
+        nom: project.nom,
+        type_projet: project.type_projet,
+        description: project.description,
+        responsable_id: project.responsable_id,
+        budget_initial: project.budget_initial,
+        devise: project.devise,
+        prestataire_externe: project.prestataire_externe,
+        nouvelles_fonctionnalites: project.nouvelles_fonctionnalites,
+        avantages: project.avantages,
+        departement: project.departements?.nom,
+        date_debut: project.date_debut ? new Date(project.date_debut) : undefined,
+        date_fin: project.date_fin ? new Date(project.date_fin) : undefined,
+        statut: project.statut,
+        date_cloture: project.date_cloture ? new Date(project.date_cloture) : undefined,
+        cloture_par: project.cloture_par,
+        date_reouverture: project.date_reouverture ? new Date(project.date_reouverture) : undefined,
+        reouvert_par: project.reouvert_par,
+        created_at: new Date(project.created_at),
+        updated_at: new Date(project.updated_at),
+        taches: [] // Tâches vides pour l'instant, elles seront chargées séparément
+      }));
+    } catch (error) {
+      console.error('[SupabaseService.getProjects] Erreur fatale:', error);
+      throw error;
+    }
   }
 
   static async createProject(projectData: {

@@ -154,11 +154,14 @@ export function useDepartments() {
 
   const loadDepartments = async () => {
     try {
+      console.log('[useDepartments] Début du chargement des départements...');
       setLoading(true);
       const data = await SupabaseService.getDepartments();
+      console.log('[useDepartments] Départements chargés:', data);
       setDepartments(data);
       setError(null);
     } catch (err) {
+      console.error('[useDepartments] Erreur lors du chargement des départements:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
     } finally {
       setLoading(false);
@@ -217,11 +220,14 @@ export function useUsers() {
 
   const loadUsers = async () => {
     try {
+      console.log('[useUsers] Début du chargement des utilisateurs...');
       setLoading(true);
       const data = await SupabaseService.getUsers();
+      console.log('[useUsers] Utilisateurs chargés:', data);
       setUsers(data);
       setError(null);
     } catch (err) {
+      console.error('[useUsers] Erreur lors du chargement des utilisateurs:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
     } finally {
       setLoading(false);
@@ -269,11 +275,14 @@ export function useProjects() {
 
   const loadProjects = async () => {
     try {
+      console.log('[useProjects] Début du chargement des projets...');
       setLoading(true);
       const data = await SupabaseService.getProjects();
+      console.log('[useProjects] Projets chargés:', data);
       setProjects(data);
       setError(null);
     } catch (err) {
+      console.error('[useProjects] Erreur lors du chargement des projets:', err);
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
     } finally {
       setLoading(false);
