@@ -38,6 +38,10 @@ const Navigation: React.FC<NavigationProps> = ({
     }
   };
 
+  // Debug: Log user info and permissions
+  console.log('Navigation - currentUser:', currentUser);
+  console.log('Navigation - user role:', currentUser?.role);
+  
   const navigationItems = [
     {
       id: 'dashboard',
@@ -69,7 +73,15 @@ const Navigation: React.FC<NavigationProps> = ({
       icon: Cog,
       show: PermissionService.hasPermission(currentUser, 'settings', 'view')
     },
-  ].filter(item => item.show);
+  ];
+  
+  // Debug: Log each item's show status
+  navigationItems.forEach(item => {
+    console.log(`Navigation - ${item.id}:`, item.show);
+  });
+  
+  const visibleItems = navigationItems.filter(item => item.show);
+  console.log('Navigation - visible items:', visibleItems.length);
 
   const handleNavigate = (viewId: string) => {
     const view = viewId as 'dashboard' | 'members' | 'departments' | 'performance' | 'settings';
@@ -114,7 +126,7 @@ const Navigation: React.FC<NavigationProps> = ({
 
             {/* Navigation Items */}
             <div className="hidden md:flex space-x-1">
-              {navigationItems.map((item) => {
+              {visibleItems.map((item) => {
                 const IconComponent = item.icon;
                 const isActive = currentView === item.id;
                 
@@ -240,7 +252,7 @@ const Navigation: React.FC<NavigationProps> = ({
         {/* Mobile Navigation */}
         <div className="md:hidden border-t border-gray-200 py-2">
           <div className="flex space-x-1 overflow-x-auto">
-            {navigationItems.map((item) => {
+            {visibleItems.map((item) => {
               const IconComponent = item.icon;
               const isActive = currentView === item.id;
               

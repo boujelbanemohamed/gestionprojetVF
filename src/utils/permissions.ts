@@ -116,42 +116,68 @@ export const ROLE_PERMISSIONS: RolePermissions[] = [
 
 export class PermissionService {
   static hasPermission(user: AuthUser | null, resource: string, action: string): boolean {
-    if (!user) return false;
+    console.log(`PermissionService.hasPermission - user:`, user);
+    console.log(`PermissionService.hasPermission - resource:`, resource, 'action:', action);
+    
+    if (!user) {
+      console.log('PermissionService.hasPermission - no user, returning false');
+      return false;
+    }
     
     const rolePermissions = ROLE_PERMISSIONS.find(rp => rp.role === user.role);
-    if (!rolePermissions) return false;
+    console.log(`PermissionService.hasPermission - rolePermissions for ${user.role}:`, rolePermissions);
+    
+    if (!rolePermissions) {
+      console.log('PermissionService.hasPermission - no role permissions found, returning false');
+      return false;
+    }
     
     const permission = rolePermissions.permissions.find(p => 
       p.resource === resource && p.action === action
     );
     
-    return permission?.allowed || false;
+    console.log(`PermissionService.hasPermission - permission found:`, permission);
+    const result = permission?.allowed || false;
+    console.log(`PermissionService.hasPermission - result:`, result);
+    
+    return result;
   }
   
   static canAccessPage(user: AuthUser | null, page: string): boolean {
-    if (!user) return false;
+    console.log(`PermissionService.canAccessPage - user:`, user);
+    console.log(`PermissionService.canAccessPage - page:`, page);
     
-    switch (page) {
-      case 'dashboard':
-        return this.hasPermission(user, 'dashboard', 'view');
-      case 'performance':
-        return this.hasPermission(user, 'performance', 'view');
-      case 'members':
-        return this.hasPermission(user, 'members', 'view');
-      case 'departments':
-        return this.hasPermission(user, 'departments', 'view');
-      case 'closed-projects':
-        return this.hasPermission(user, 'projects', 'view');
-      case 'settings':
-      case 'settings-general':
-      case 'settings-budget':
-      case 'settings-permissions':
-        return this.hasPermission(user, 'settings', 'view');
-      case 'meeting-minutes':
-        return this.hasPermission(user, 'meeting-minutes', 'view');
-      default:
-        return false;
+    if (!user) {
+      console.log('PermissionService.canAccessPage - no user, returning false');
+      return false;
     }
+    
+    const result = (() => {
+      switch (page) {
+        case 'dashboard':
+          return this.hasPermission(user, 'dashboard', 'view');
+        case 'performance':
+          return this.hasPermission(user, 'performance', 'view');
+        case 'members':
+          return this.hasPermission(user, 'members', 'view');
+        case 'departments':
+          return this.hasPermission(user, 'departments', 'view');
+        case 'closed-projects':
+          return this.hasPermission(user, 'projects', 'view');
+        case 'settings':
+        case 'settings-general':
+        case 'settings-budget':
+        case 'settings-permissions':
+          return this.hasPermission(user, 'settings', 'view');
+        case 'meeting-minutes':
+          return this.hasPermission(user, 'meeting-minutes', 'view');
+        default:
+          return false;
+      }
+    })();
+    
+    console.log(`PermissionService.canAccessPage - result for ${page}:`, result);
+    return result;
   }
   
   static getAccessibleProjects(user: AuthUser | null, allProjects: any[]): any[] {
