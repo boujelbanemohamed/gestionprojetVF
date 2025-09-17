@@ -45,6 +45,13 @@ function App() {
   const { users, updateUser, deleteUser } = useUsers();
   const { projects, createProject, updateProject, deleteProject } = useProjects();
   
+  // Debug logs
+  console.log('[App] currentUser:', currentUser);
+  console.log('[App] authLoading:', authLoading);
+  console.log('[App] departments:', departments);
+  console.log('[App] users:', users);
+  console.log('[App] projects:', projects);
+  
   const [currentRoute, setCurrentRoute] = useState<RouteConfig>(Router.getCurrentRoute());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -56,6 +63,8 @@ function App() {
 
   // Initialize router and check authentication
   useEffect(() => {
+    console.log('[App] useEffect - authLoading:', authLoading, 'currentUser:', currentUser);
+    
     // Rediriger vers le domaine principal si nécessaire
     redirectToPrimaryDomain();
     
@@ -68,8 +77,10 @@ function App() {
 
     // Show login modal if not authenticated
     if (!authLoading && !currentUser) {
+      console.log('[App] Pas d\'utilisateur, affichage du modal de connexion');
       setIsLoginModalOpen(true);
     } else if (!authLoading && currentUser) {
+      console.log('[App] Utilisateur connecté, fermeture du modal');
       // Fermer le modal si l'utilisateur est connecté
       setIsLoginModalOpen(false);
     }
