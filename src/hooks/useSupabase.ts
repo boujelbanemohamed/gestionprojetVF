@@ -167,7 +167,7 @@ export function useAuth() {
 // Hook for departments
 export function useDepartments() {
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadDepartments = async () => {
@@ -186,9 +186,7 @@ export function useDepartments() {
     }
   };
 
-  useEffect(() => {
-    loadDepartments();
-  }, []);
+  // Ne pas charger automatiquement au montage du composant
 
   const createDepartment = async (nom: string) => {
     try {
@@ -233,7 +231,7 @@ export function useDepartments() {
 // Hook for users
 export function useUsers() {
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadUsers = async () => {
@@ -252,9 +250,7 @@ export function useUsers() {
     }
   };
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
+  // Ne pas charger automatiquement au montage du composant
 
   const updateUser = async (id: string, userData: any) => {
     try {
@@ -288,7 +284,7 @@ export function useUsers() {
 // Hook for projects
 export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadProjects = async () => {
@@ -307,9 +303,8 @@ export function useProjects() {
     }
   };
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
+  // Ne pas charger automatiquement au montage du composant
+  // Les projets seront chargés manuellement quand l'utilisateur est connecté
 
   const createProject = async (projectData: any) => {
     try {

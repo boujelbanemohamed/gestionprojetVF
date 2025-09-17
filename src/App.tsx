@@ -41,9 +41,9 @@ window.addEventListener('unhandledrejection', (event) => {
 function App() {
   // Use Supabase hooks
   const { user: currentUser, loading: authLoading, signIn, signUp, signOut } = useAuth();
-  const { departments, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
-  const { users, updateUser, deleteUser } = useUsers();
-  const { projects, createProject, updateProject, deleteProject } = useProjects();
+  const { departments, createDepartment, updateDepartment, deleteDepartment, refetch: loadDepartments } = useDepartments();
+  const { users, updateUser, deleteUser, refetch: loadUsers } = useUsers();
+  const { projects, createProject, updateProject, deleteProject, refetch: loadProjects } = useProjects();
   
   // Debug logs
   console.log('[App] currentUser:', currentUser);
@@ -55,10 +55,34 @@ function App() {
   // Force data loading when user is connected
   useEffect(() => {
     if (currentUser && !authLoading) {
-      console.log('[App] Utilisateur connecté, vérification des données...');
+      console.log('[App] Utilisateur connecté, chargement des données...');
+      
+      // Charger les données manuellement
+      if (typeof loadProjects === 'function') {
+        console.log('[App] Chargement des projets...');
+        loadProjects();
+      }
+      if (typeof loadUsers === 'function') {
+        console.log('[App] Chargement des utilisateurs...');
+        loadUsers();
+      }
+      if (typeof loadDepartments === 'function') {
+        console.log('[App] Chargement des départements...');
+        loadDepartments();
+      }
+    }
+  }, [currentUser, authLoading]);
+
+  // Log des données chargées
+  useEffect(() => {
+    if (currentUser && !authLoading) {
+      console.log('[App] Vérification des données chargées...');
       console.log('[App] Nombre de projets:', projects.length);
       console.log('[App] Nombre d\'utilisateurs:', users.length);
       console.log('[App] Nombre de départements:', departments.length);
+      console.log('[App] Détail des projets:', projects);
+      console.log('[App] Détail des utilisateurs:', users);
+      console.log('[App] Détail des départements:', departments);
     }
   }, [currentUser, authLoading, projects, users, departments]);
   
