@@ -233,12 +233,10 @@ export class SupabaseService {
     
     try {
       // Requête simplifiée pour éviter les erreurs de jointures complexes
+      // Étape 1: requête sans jointure pour garantir l'accès aux projets
       const { data, error } = await supabase
         .from('projets')
-        .select(`
-          *,
-          departements(nom)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       console.log('[SupabaseService.getProjects] Réponse de la requête:', { data, error });
@@ -261,7 +259,8 @@ export class SupabaseService {
         prestataire_externe: project.prestataire_externe,
         nouvelles_fonctionnalites: project.nouvelles_fonctionnalites,
         avantages: project.avantages,
-        departement: project.departements?.nom,
+        // La jointure departements est temporairement retirée pour éviter les blocages RLS
+        departement: undefined,
         date_debut: project.date_debut ? new Date(project.date_debut) : undefined,
         date_fin: project.date_fin ? new Date(project.date_fin) : undefined,
         statut: project.statut,
