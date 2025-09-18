@@ -229,7 +229,7 @@ export class SupabaseService {
 
   // Projects
   static async getProjects(): Promise<Project[]> {
-    console.log('[SupabaseService.getProjects] Début de la requête...');
+    console.log('[SupabaseService.getProjects v2.3] Début de la requête (select=*)...');
     
     try {
       // Requête simplifiée pour éviter les erreurs de jointures complexes
@@ -239,14 +239,14 @@ export class SupabaseService {
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('[SupabaseService.getProjects] Réponse de la requête:', { data, error });
+      console.log('[SupabaseService.getProjects v2.3] Réponse de la requête:', { data, error });
 
       if (error) {
         console.error('[SupabaseService.getProjects] Erreur:', error);
         throw error;
       }
 
-      console.log('[SupabaseService.getProjects] Nombre de projets trouvés:', data?.length || 0);
+      console.log('[SupabaseService.getProjects v2.3] Nombre de projets trouvés:', data?.length || 0);
 
       return data.map(project => ({
         id: project.id,
